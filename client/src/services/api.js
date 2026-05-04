@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+const PRODUCTION_API_URL = 'https://resume-analyzer-api-12if.onrender.com/api';
+
 // Get backend URL from environment or use relative path for dev
 const getBackendURL = () => {
   // In development, use relative path (vite proxy handles it)
@@ -7,7 +9,7 @@ const getBackendURL = () => {
     return '/api';
   }
   // In production, use environment variable or construct from window.location
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return import.meta.env.VITE_API_URL || PRODUCTION_API_URL;
 };
 
 const api = axios.create({

@@ -20,8 +20,16 @@ const allowedOrigins = configuredOrigins
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const isAllowedVercelOrigin = (origin) => {
+  try {
+    return new URL(origin).hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+};
+
 const corsOrigin = (origin, callback) => {
-  if (!origin || allowedOrigins.includes(origin)) {
+  if (!origin || allowedOrigins.includes(origin) || isAllowedVercelOrigin(origin)) {
     return callback(null, true);
   }
 
@@ -60,6 +68,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
 
 // Health check
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'resume-analyzer-api' });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

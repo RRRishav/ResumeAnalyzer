@@ -25,11 +25,13 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 
+const PRODUCTION_SOCKET_URL = 'https://resume-analyzer-api-12if.onrender.com';
+
 const getSocketURL = () => {
   if (import.meta.env.DEV) {
     return import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
   }
-  return import.meta.env.VITE_SOCKET_URL || window.location.origin;
+  return import.meta.env.VITE_SOCKET_URL || PRODUCTION_SOCKET_URL;
 };
 
 const skillName = (skill) => (typeof skill === 'string' ? skill : skill?.name || 'Skill');
