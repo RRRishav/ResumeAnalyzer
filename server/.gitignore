@@ -36,11 +36,7 @@ Thumbs.db
 
 .cache/
 .parcel-cache/
-
-# Next.js / Vite / React
-
-.next/
-vite.svg
+npm-cache/
 
 # Coverage
 
@@ -65,3 +61,10 @@ temp/
 # Optional: uploads (if your app stores files)
 
 uploads/
+uploads/*
+!uploads/.gitkeep
+
+# Local runtime files
+
+*.local
+*.bak
