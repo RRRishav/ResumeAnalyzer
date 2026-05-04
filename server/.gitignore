@@ -1,0 +1,67 @@
+# Dependencies
+
+node_modules/
+
+# Logs
+
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+
+.env
+.env.*
+!.env.example
+
+# Build folders
+
+dist/
+build/
+out/
+
+# OS files
+
+.DS_Store
+Thumbs.db
+
+# Editor folders
+
+.vscode/
+.idea/
+
+# Cache
+
+.cache/
+.parcel-cache/
+
+# Next.js / Vite / React
+
+.next/
+vite.svg
+
+# Coverage
+
+coverage/
+
+# Temporary files
+
+tmp/
+temp/
+
+# Database
+
+*.sqlite
+*.db
+
+# Debug
+
+*.pid
+*.seed
+*.pid.lock
+
+# Optional: uploads (if your app stores files)
+
+uploads/

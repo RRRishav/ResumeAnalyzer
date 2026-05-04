@@ -1,0 +1,251 @@
+.analyzer {
+  padding: var(--space-2xl) 0 var(--space-4xl);
+}
+
+.analyzer-header {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.analyzer-header h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+}
+
+.analyzer-header p {
+  color: var(--text-secondary);
+  margin-top: var(--space-sm);
+}
+
+.analyzer-upload-section {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.analyzer-options { width: 100%; }
+
+.analyzer-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.analyzer-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(239, 83, 80, 0.1);
+  border: 1px solid rgba(239, 83, 80, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--accent-danger);
+  font-size: var(--font-size-sm);
+  flex-wrap: wrap;
+}
+
+.analyzer-submit {
+  width: 100%;
+}
+
+/* Results */
+.analyzer-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.result-scores {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+.result-score-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+.result-score-card:hover { transform: none; }
+
+.result-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+}
+
+.result-meta:hover { transform: none; }
+
+.result-meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.result-meta-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.result-meta-value {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.result-meta-filename {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-section {
+  padding: var(--space-xl);
+}
+
+.result-section:hover { transform: none; }
+
+.result-section h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-lg);
+}
+
+.result-skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.skill-tag {
+  padding: 5px 14px;
+  background: rgba(108, 99, 255, 0.1);
+  color: var(--accent-primary);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.result-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+.result-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.result-list li {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.result-list-success li {
+  background: rgba(0, 212, 170, 0.06);
+  border-left: 3px solid var(--accent-secondary);
+}
+
+.result-list-danger li {
+  background: rgba(239, 83, 80, 0.06);
+  border-left: 3px solid var(--accent-danger);
+}
+
+.result-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-glass);
+  border-radius: var(--radius-md);
+}
+
+.suggestion-text {
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.result-careers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.career-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  background: var(--bg-glass);
+  border-radius: var(--radius-md);
+}
+
+.career-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.career-role {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+}
+
+.career-reason {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.career-match {
+  text-align: center;
+}
+
+.career-match-value {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: var(--accent-primary);
+}
+
+.career-match-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.result-ai-summary p {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.result-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  padding-top: var(--space-lg);
+}
+
+@media (max-width: 900px) {
+  .result-scores { grid-template-columns: 1fr; }
+  .result-two-col { grid-template-columns: 1fr; }
+}

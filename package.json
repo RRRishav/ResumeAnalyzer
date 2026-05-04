@@ -1,0 +1,23 @@
+{
+  "name": "resume-analyzer",
+  "version": "1.0.0",
+  "description": "AI-powered Resume Analyzer - Full Stack Application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "echo 'Server is Node.js - no build needed'",
+    "build:client": "cd client && npm run build",
+    "preview": "cd client && npm run preview",
+    "install-deps": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

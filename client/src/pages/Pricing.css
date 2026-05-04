@@ -1,0 +1,120 @@
+.pricing {
+  padding: var(--space-3xl) 0 var(--space-4xl);
+}
+
+.pricing-header {
+  text-align: center;
+  margin-bottom: var(--space-3xl);
+}
+
+.pricing-header h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+}
+
+.pricing-header p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+  margin-top: var(--space-sm);
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.pricing-card {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+}
+
+.pricing-card-popular {
+  border-color: var(--accent-primary) !important;
+  box-shadow: var(--shadow-glow-accent);
+}
+
+.pricing-popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 16px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+.pricing-plan-name {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.pricing-price {
+  margin-bottom: var(--space-xl);
+}
+
+.pricing-amount {
+  font-size: var(--font-size-4xl);
+  font-weight: 900;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pricing-period {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.pricing-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+  flex: 1;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.pricing-feature-disabled {
+  opacity: 0.4;
+}
+
+.pricing-feature-icon-yes {
+  color: var(--accent-secondary);
+  flex-shrink: 0;
+}
+
+.pricing-feature-icon-no {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pricing-cta {
+  width: 100%;
+}
