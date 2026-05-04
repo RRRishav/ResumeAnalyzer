@@ -21,18 +21,17 @@ The project has a React frontend, an Express backend, MongoDB storage, JWT authe
 
 ### Frontend
 
-![Frontend screenshot](<img width="1900" height="922" alt="image" src="https://github.com/user-attachments/assets/b6c31ea9-de51-4db5-abfb-ea2e9a46046a" />
-)
+<img width="1900" height="922" alt="image" src="https://github.com/user-attachments/assets/b6c31ea9-de51-4db5-abfb-ea2e9a46046a" />
+
 
 ### Backend
 
-![Backend screenshot](<img width="1695" height="878" alt="image" src="https://github.com/user-attachments/assets/1dcc5d89-9c4e-4a59-8139-c6708aa7a149" />
-)
+<img width="1695" height="878" alt="image" src="https://github.com/user-attachments/assets/1dcc5d89-9c4e-4a59-8139-c6708aa7a149" />
 
 ### Database
 
-![Database screenshot](<img width="1538" height="948" alt="image" src="https://github.com/user-attachments/assets/26b6c1a4-5a9b-4e03-8159-d6ccd80e76de" />
-)
+<img width="1538" height="948" alt="image" src="https://github.com/user-attachments/assets/26b6c1a4-5a9b-4e03-8159-d6ccd80e76de" />
+
 
 ## Tech Stack
 
