@@ -139,4 +139,4 @@ http://localhost:5000/api/health
 
 ## Author
 
-Built by Rishav as a full-stack resume analysis project.
+Built by Rishav and Navneet  as a full-stack resume analysis project.
