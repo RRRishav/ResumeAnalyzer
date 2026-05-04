@@ -4,7 +4,8 @@ A full-stack resume analysis app that lets users upload a PDF or DOCX resume, ge
 
 The project has a React frontend, an Express backend, MongoDB storage, JWT authentication, file parsing, skill extraction, and live progress updates while a resume is being analyzed.
 
-![Frontend preview](docs/screenshots/frontend.svg)
+![Frontend preview<img width="1908" height="952" alt="image" src="https://github.com/user-attachments/assets/41c31e12-6453-4b07-a2b4-a09eaa96416d" />
+)
 
 ## What It Does
 
