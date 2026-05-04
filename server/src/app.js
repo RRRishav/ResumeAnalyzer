@@ -14,10 +14,24 @@ const resumeRoutes = require('./routes/resumeRoutes');
 const app = express();
 const server = http.createServer(app);
 
+const configuredOrigins = process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173';
+const allowedOrigins = configuredOrigins
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOrigin = (origin, callback) => {
+  if (!origin || allowedOrigins.includes(origin)) {
+    return callback(null, true);
+  }
+
+  return callback(new Error(`CORS blocked origin: ${origin}`));
+};
+
 // Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });
@@ -35,7 +49,7 @@ io.on('connection', (socket) => {
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: corsOrigin,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
