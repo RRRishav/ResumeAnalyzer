@@ -25,8 +25,11 @@ import {
   FiArrowRight,
   FiCode,
   FiLink,
+  FiCloud,
+  FiServer,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
 import api from '../services/api';
 import FileUpload from '../components/FileUpload';
 import ProgressBar from '../components/ProgressBar';
@@ -47,6 +50,7 @@ const getSocketURL = () => {
 export default function ExtractInfo() {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [file, setFile] = useState(null);
   const [extracting, setExtracting] = useState(false);
   const [progress, setProgress] = useState({ stage: '', progress: 0, message: '' });
@@ -54,6 +58,7 @@ export default function ExtractInfo() {
   const [error, setError] = useState('');
   const [llmStatus, setLlmStatus] = useState('checking'); // 'checking' | 'online' | 'offline'
   const [llmModel, setLlmModel] = useState('');
+  const [llmProvider, setLlmProvider] = useState(''); // 'Ollama (Local)' | 'Groq Cloud (Llama)'
   const socketRef = useRef(null);
 
   // Check LLM health on mount
@@ -86,11 +91,15 @@ export default function ExtractInfo() {
       if (res.data.healthy) {
         setLlmStatus('online');
         setLlmModel(res.data.model || '');
+        setLlmProvider(res.data.provider || '');
+        toast.success(`LLM connected — ${res.data.provider || 'Ready'}`, 3000);
       } else {
         setLlmStatus('offline');
+        toast.warning('No LLM provider available. Check Ollama or Groq config.', 5000);
       }
     } catch {
       setLlmStatus('offline');
+      toast.error('Could not reach LLM health endpoint', 4000);
     }
   };
 
@@ -100,6 +109,7 @@ export default function ExtractInfo() {
     setResult(null);
     setExtracting(true);
     setProgress({ stage: 'parsing', progress: 5, message: 'Starting extraction...' });
+    toast.info('Extraction started — processing your resume...', 3000);
 
     try {
       const formData = new FormData();
@@ -116,10 +126,12 @@ export default function ExtractInfo() {
       setResult(res.data.extraction);
       setProgress({ stage: 'complete', progress: 100, message: 'Extraction complete!' });
       refreshUser();
+      toast.success(`Extraction complete via ${res.data.extraction?.provider_used || 'AI'} — ${res.data.extraction?.model_used || ''}`, 5000);
     } catch (err) {
-      const msg = err.response?.data?.error || 'Extraction failed. Make sure Ollama is running locally.';
+      const msg = err.response?.data?.error || 'Extraction failed. Make sure an LLM provider is available.';
       setError(msg);
       setProgress({ stage: '', progress: 0, message: '' });
+      toast.error(msg, 6000);
     } finally {
       setExtracting(false);
     }
@@ -140,22 +152,31 @@ export default function ExtractInfo() {
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
+  // Determine provider icon and label
+  const isCloud = llmProvider?.toLowerCase().includes('groq') || llmProvider?.toLowerCase().includes('cloud');
+  const providerIcon = isCloud ? <FiCloud size={13} /> : <FiServer size={13} />;
+  const providerLabel = llmProvider || (isCloud ? 'Groq Cloud' : 'Ollama Local');
+
   return (
     <div className="extract-page">
       <div className="container">
         {/* Header */}
         <div className="extract-header animate-fade-in-up">
           <div className="extract-header-row">
-            <Badge variant="default"><FiDatabase /> Ollama Extract</Badge>
+            <Badge variant="default"><FiDatabase /> AI Extract</Badge>
             <div className={`ollama-status ${llmStatus}`}>
               <span className="ollama-status-dot" />
-              {llmStatus === 'checking' && 'Checking Ollama...'}
-              {llmStatus === 'online' && `Ollama Online${llmModel ? ` · ${llmModel}` : ''}`}
-              {llmStatus === 'offline' && 'Ollama Offline'}
+              {llmStatus === 'checking' && 'Checking LLM...'}
+              {llmStatus === 'online' && (
+                <span className="flex items-center gap-1.5">
+                  {providerIcon} {providerLabel}{llmModel ? ` · ${llmModel}` : ''}
+                </span>
+              )}
+              {llmStatus === 'offline' && 'LLM Offline'}
             </div>
           </div>
           <h1>Extract <span className="text-gradient">Resume Info</span></h1>
-          <p>Upload your resume and let AI extract only the important data — powered by local Ollama.</p>
+          <p>Upload your resume and let AI extract structured data — Ollama locally, Groq in production.</p>
         </div>
 
         {/* Upload / Results */}
@@ -185,7 +206,7 @@ export default function ExtractInfo() {
             {llmStatus === 'offline' && (
               <div className="extract-error" style={{ marginTop: '0.75rem' }}>
                 <FiAlertTriangle />
-                Ollama is not available. Make sure Ollama is running locally on port 11434.
+                No LLM provider available. Start Ollama locally or configure GROQ_API_KEY.
                 <Button size="sm" variant="outline" onClick={checkLLM} style={{ marginLeft: 'auto' }}>
                   <FiRefreshCcw size={14} /> Retry
                 </Button>
@@ -199,7 +220,7 @@ export default function ExtractInfo() {
               <div>
                 <Badge variant="success"><FiCheckCircle /> Extraction Complete</Badge>
                 <h2>{data.name || result.filename}</h2>
-                <p>Extracted from {result.filename} using {result.model_used}</p>
+                <p>Extracted from {result.filename} using <strong>{result.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama Local'}</strong> · {result.model_used}</p>
                 <div className="extract-result-actions">
                   <Button onClick={handleReset}><FiRefreshCcw /> Extract Another</Button>
                   <Button variant="outline" onClick={() => navigate(`/extract-detail/${result.id}`)}>
@@ -208,6 +229,13 @@ export default function ExtractInfo() {
                 </div>
               </div>
               <div className="extract-result-meta">
+                <div className="extract-meta-item">
+                  <span>Provider</span>
+                  <strong className="flex items-center gap-1">
+                    {result.provider_used === 'groq' ? <FiCloud size={13} /> : <FiServer size={13} />}
+                    {result.provider_used === 'groq' ? 'Groq' : 'Ollama'}
+                  </strong>
+                </div>
                 <div className="extract-meta-item">
                   <span>Model</span>
                   <strong>{result.model_used}</strong>

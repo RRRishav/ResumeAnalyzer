@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiBarChart2, FiCheck, FiLock, FiLogIn, FiMail, FiShield, FiZap } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -13,6 +14,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,9 +22,12 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
+      toast.success('Welcome back! Redirecting to dashboard...', 3000);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      const msg = err.response?.data?.error || 'Login failed. Please try again.';
+      setError(msg);
+      toast.error(msg, 5000);
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiCheck, FiLock, FiMail, FiShield, FiTarget, FiUser, FiUserPlus, FiZap } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -15,20 +16,25 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      toast.warning('Passwords do not match', 3000);
       return;
     }
     setLoading(true);
     try {
       await register(name, email, password);
+      toast.success('Account created! Welcome to Resume Analyzer 🚀', 4000);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed.');
+      const msg = err.response?.data?.error || 'Registration failed.';
+      setError(msg);
+      toast.error(msg, 5000);
     } finally {
       setLoading(false);
     }

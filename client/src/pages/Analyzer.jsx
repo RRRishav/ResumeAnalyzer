@@ -16,6 +16,7 @@ import {
   FiXCircle,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
 import api from '../services/api';
 import FileUpload from '../components/FileUpload';
 import ProgressBar from '../components/ProgressBar';
@@ -39,6 +40,7 @@ const skillName = (skill) => (typeof skill === 'string' ? skill : skill?.name ||
 export default function Analyzer() {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [file, setFile] = useState(null);
   const [jobDesc, setJobDesc] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
@@ -73,6 +75,7 @@ export default function Analyzer() {
     setResult(null);
     setAnalyzing(true);
     setProgress({ stage: 'parsing', progress: 5, message: 'Starting analysis...' });
+    toast.info('Analysis started — processing your resume...', 3000);
 
     try {
       const formData = new FormData();
@@ -90,12 +93,15 @@ export default function Analyzer() {
       setResult(res.data.analysis);
       setProgress({ stage: 'complete', progress: 100, message: 'Analysis complete!' });
       refreshUser();
+      toast.success(`Analysis complete! Overall Score: ${res.data.analysis?.overall_score || '—'}/100`, 5000);
     } catch (err) {
       const msg = err.response?.data?.error || err.response?.data?.message || 'Analysis failed. Please try again.';
-      setError(err.response?.data?.limit_reached
+      const errorMsg = err.response?.data?.limit_reached
         ? 'Free analysis limit reached. Upgrade to Premium for unlimited access.'
-        : msg);
+        : msg;
+      setError(errorMsg);
       setProgress({ stage: '', progress: 0, message: '' });
+      toast.error(errorMsg, 6000);
     } finally {
       setAnalyzing(false);
     }

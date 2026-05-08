@@ -2029,3 +2029,380 @@ footer {
     text-align: left;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Particle Field — Floating 3D Background
+   ═══════════════════════════════════════════════════════ */
+
+.particle-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.pf-dot {
+  position: absolute;
+  border-radius: 999px;
+  will-change: transform, opacity;
+}
+
+.pf-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  border: 1px solid rgba(125, 211, 252, 0.08);
+  border-radius: 50%;
+  transform-style: preserve-3d;
+}
+
+.pf-ring-1 {
+  width: min(900px, 120vw);
+  height: min(900px, 120vw);
+  transform: rotateX(72deg) rotateZ(0deg);
+  animation: pfOrbit 28s linear infinite;
+}
+
+.pf-ring-2 {
+  width: min(650px, 90vw);
+  height: min(650px, 90vw);
+  border-color: rgba(129, 140, 248, 0.06);
+  transform: rotateX(65deg) rotateZ(40deg);
+  animation: pfOrbit 20s linear infinite reverse;
+}
+
+.pf-ring-3 {
+  width: min(420px, 60vw);
+  height: min(420px, 60vw);
+  border-color: rgba(52, 211, 153, 0.06);
+  transform: rotateX(78deg) rotateZ(90deg);
+  animation: pfOrbit 14s linear infinite;
+}
+
+@keyframes pfOrbit {
+  to { transform: rotateX(72deg) rotateZ(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Footer HUD — Dark Theme Match
+   ═══════════════════════════════════════════════════════ */
+
+.footer-hud {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.92) 0%, rgba(7, 17, 31, 0.98) 100%);
+  border-top: 1px solid rgba(34, 211, 238, 0.12);
+  margin-top: auto;
+}
+
+.footer-glow {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #22d3ee 30%, #818cf8 50%, #34d399 70%, transparent 100%);
+  filter: blur(1px);
+  opacity: 0.7;
+}
+
+.footer-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.06), transparent);
+  pointer-events: none;
+}
+
+.footer-social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #94a3b8 !important;
+  transition: all 0.25s ease;
+}
+
+.footer-social-icon:hover {
+  color: #67e8f9 !important;
+  border-color: rgba(34, 211, 238, 0.3);
+  background: rgba(34, 211, 238, 0.08);
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.15);
+  transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Enhanced 3D Card Hovers
+   ═══════════════════════════════════════════════════════ */
+
+.extract-section,
+.result-section,
+.result-metric-card,
+.result-score-card,
+.feature-card-neo,
+.pricing-card,
+.dash-stat-card,
+.analysis-card-hud {
+  transition:
+    transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.extract-section:hover,
+.result-metric-card:hover,
+.feature-card-neo:hover,
+.pricing-card:hover {
+  transform: translateY(-6px) rotateX(2deg) scale(1.01);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(34, 211, 238, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Neon Scan Line Effect
+   ═══════════════════════════════════════════════════════ */
+
+.app-shell::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(34, 211, 238, 0.008) 3px,
+    rgba(34, 211, 238, 0.008) 4px
+  );
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Animated Gradient Borders
+   ═══════════════════════════════════════════════════════ */
+
+.extract-result-hero,
+.result-hero {
+  position: relative;
+}
+
+.extract-result-hero::after,
+.result-hero::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(34, 211, 238, 0.2),
+    rgba(129, 140, 248, 0.15),
+    rgba(52, 211, 153, 0.15),
+    rgba(34, 211, 238, 0.2)
+  );
+  background-size: 300% 300%;
+  animation: gradientShift 6s ease-in-out infinite;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 1px;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Glowing Skill Tags
+   ═══════════════════════════════════════════════════════ */
+
+.extract-skill-tag:hover,
+.skill-tag:hover {
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
+  transform: translateY(-2px) scale(1.04);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Glass Overlay for Cards
+   ═══════════════════════════════════════════════════════ */
+
+.extract-upload-section,
+.analyzer-upload-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.extract-upload-section::before,
+.analyzer-upload-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(34, 211, 238, 0.03) 60deg,
+    transparent 120deg,
+    rgba(129, 140, 248, 0.03) 180deg,
+    transparent 240deg,
+    rgba(52, 211, 153, 0.03) 300deg,
+    transparent 360deg
+  );
+  animation: rotateConic 12s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotateConic {
+  to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Enhanced Badge Glow
+   ═══════════════════════════════════════════════════════ */
+
+.ollama-status.online {
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
+}
+
+.ollama-status.offline {
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════
+   3D Tilt on Auth Showcase
+   ═══════════════════════════════════════════════════════ */
+
+.auth-showcase-main {
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.45),
+    0 0 40px rgba(34, 211, 238, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.auth-float-card {
+  animation: authCardFloat 3.5s ease-in-out infinite alternate;
+}
+
+.auth-float-one {
+  animation-delay: 0s;
+}
+
+.auth-float-two {
+  animation-delay: 1.2s;
+}
+
+@keyframes authCardFloat {
+  from { transform: translateY(0) scale(1); }
+  to { transform: translateY(-10px) scale(1.03); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Improved Extract Page 3D Effects
+   ═══════════════════════════════════════════════════════ */
+
+.extract-project-card:hover {
+  transform: translateY(-3px) rotateX(1deg);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+}
+
+.extract-cert-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.extract-exp-item:hover {
+  transform: translateX(6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.education-item:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Animated Page Entrance
+   ═══════════════════════════════════════════════════════ */
+
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Landing Page Enhanced Glow Orbs
+   ═══════════════════════════════════════════════════════ */
+
+.landing-page::after {
+  content: '';
+  position: fixed;
+  top: 15%;
+  right: -8%;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.12), transparent 60%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: orbPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes orbPulse {
+  from { opacity: 0.4; transform: scale(1); }
+  to { opacity: 0.7; transform: scale(1.15); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Premium Score Gauge Glow
+   ═══════════════════════════════════════════════════════ */
+
+.score-gauge-ring {
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.25));
+}
+
+.result-score-card:hover {
+  transform: scale(1.03);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(34, 211, 238, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Responsive Particle Field
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .pf-ring { display: none; }
+  .particle-field .pf-dot:nth-child(n+15) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .particle-field,
+  .pf-ring,
+  .pf-dot {
+    animation: none !important;
+  }
+  .app-shell::after { display: none; }
+}
