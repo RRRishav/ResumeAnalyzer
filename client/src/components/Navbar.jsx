@@ -65,6 +65,16 @@ export default function Navbar() {
                 Analyze
               </Link>
               <Link
+                to="/extract"
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  isActive('/extract')
+                    ? 'bg-cyan-300/10 text-cyan-200'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Extract
+              </Link>
+              <Link
                 to="/history"
                 className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
                   isActive('/history')
@@ -73,6 +83,16 @@ export default function Navbar() {
                 }`}
               >
                 History
+              </Link>
+              <Link
+                to="/extract-history"
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  isActive('/extract-history')
+                    ? 'bg-cyan-300/10 text-cyan-200'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Extractions
               </Link>
               <div className="w-px h-6 bg-white/10 mx-2" />
               <div className="flex items-center gap-3">
@@ -131,11 +151,25 @@ export default function Navbar() {
                   Analyze
                 </Link>
                 <Link
+                  to="/extract"
+                  className="px-4 py-2 rounded-lg font-medium text-sm text-slate-300 hover:bg-white/5 transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Extract
+                </Link>
+                <Link
                   to="/history"
                   className="px-4 py-2 rounded-lg font-medium text-sm text-slate-300 hover:bg-white/5 transition-colors"
                   onClick={() => setMenuOpen(false)}
                 >
                   History
+                </Link>
+                <Link
+                  to="/extract-history"
+                  className="px-4 py-2 rounded-lg font-medium text-sm text-slate-300 hover:bg-white/5 transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Extractions
                 </Link>
                 <Button
                   onClick={handleLogout}

@@ -7,9 +7,11 @@ require('dotenv').config();
 
 const { initDB } = require('./config/db');
 const { initGemini } = require('./services/geminiService');
+const { checkOllamaHealth } = require('./services/ollamaService');
 
 const authRoutes = require('./routes/authRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
+const extractRoutes = require('./routes/extractRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -66,6 +68,7 @@ app.use(express.urlencoded({ extended: true }));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
+app.use('/api/extract', extractRoutes);
 
 // Health check
 app.get('/', (req, res) => {
@@ -95,6 +98,15 @@ async function startServer() {
   try {
     await initDB();
     initGemini();
+
+    // Check LLM provider connectivity (non-blocking)
+    checkOllamaHealth().then((status) => {
+      if (status.healthy) {
+        console.log(`🦙 LLM ready — ${status.provider} · model: ${status.model} ✓`);
+      } else {
+        console.warn(`⚠️  LLM not available: ${status.error}`);
+      }
+    });
 
     server.listen(PORT, () => {
       console.log(`\n🚀 Server running on http://localhost:${PORT}`);

@@ -11,6 +11,9 @@ import Analyzer from './pages/Analyzer';
 import History from './pages/History';
 import ReportDetail from './pages/ReportDetail';
 import Pricing from './pages/Pricing';
+import ExtractInfo from './pages/ExtractInfo';
+import ExtractHistory from './pages/ExtractHistory';
+import ExtractDetail from './pages/ExtractDetail';
 
 function App() {
   return (
@@ -26,6 +29,9 @@ function App() {
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/analyze" element={<ProtectedRoute><Analyzer /></ProtectedRoute>} />
+              <Route path="/extract" element={<ProtectedRoute><ExtractInfo /></ProtectedRoute>} />
+              <Route path="/extract-history" element={<ProtectedRoute><ExtractHistory /></ProtectedRoute>} />
+              <Route path="/extract-detail/:id" element={<ProtectedRoute><ExtractDetail /></ProtectedRoute>} />
               <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
               <Route path="/report/:id" element={<ProtectedRoute><ReportDetail /></ProtectedRoute>} />
             </Routes>
