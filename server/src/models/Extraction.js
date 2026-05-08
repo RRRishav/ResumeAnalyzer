@@ -45,6 +45,7 @@ const extractionSchema = new mongoose.Schema(
       ],
     },
     model_used: { type: String, default: 'llama3.2' },
+    provider_used: { type: String, default: 'ollama' },
     processing_time_ms: { type: Number, default: 0 },
     raw_text: { type: String },
     word_count: { type: Number, default: 0 },

@@ -206,7 +206,7 @@ export default function ExtractInfo() {
             {llmStatus === 'offline' && (
               <div className="extract-error" style={{ marginTop: '0.75rem' }}>
                 <FiAlertTriangle />
-                No LLM provider available. Start Ollama locally or configure GROQ_API_KEY.
+                LLM service is unavailable. The server may still be starting up — please retry in a moment.
                 <Button size="sm" variant="outline" onClick={checkLLM} style={{ marginLeft: 'auto' }}>
                   <FiRefreshCcw size={14} /> Retry
                 </Button>

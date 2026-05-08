@@ -26,10 +26,11 @@ exports.upload = async (req, res) => {
       const { text, wordCount, fileType } = await parseResume(req.file.path);
       emit('parsing', 25, `Extracted ${wordCount} words from ${fileType.toUpperCase()}`);
 
-      // Stage 2: Send to Ollama for extraction
-      emit('extracting', 35, 'Sending to local AI for extraction...');
+      // Stage 2: Send to LLM for extraction (Ollama locally, Groq in production)
+      const providerLabel = process.env.NODE_ENV === 'production' ? 'Groq Cloud' : 'AI';
+      emit('extracting', 35, `Sending to ${providerLabel} for extraction...`);
       const extracted = await extractResumeData(text);
-      emit('extracting', 70, 'AI extraction complete, processing results...');
+      emit('extracting', 70, `${extracted.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama'} extraction complete, processing results...`);
 
       // Stage 3: Process and save
       emit('processing', 80, 'Saving extraction results...');
@@ -54,6 +55,7 @@ exports.upload = async (req, res) => {
           experience: extracted.experience,
         },
         model_used: extracted.model_used,
+        provider_used: extracted.provider_used || 'unknown',
         processing_time_ms: extracted.processing_time_ms,
         raw_text: text,
         word_count: wordCount,
@@ -72,6 +74,7 @@ exports.upload = async (req, res) => {
           file_type: dbResult.file_type,
           extracted_data: dbResult.extracted_data,
           model_used: dbResult.model_used,
+          provider_used: dbResult.provider_used || 'unknown',
           processing_time_ms: dbResult.processing_time_ms,
           word_count: dbResult.word_count,
           created_at: dbResult.created_at,
