@@ -1,49 +1,60 @@
 import { Link } from 'react-router-dom';
-import { FiGithub, FiTwitter, FiLinkedin, FiZap } from 'react-icons/fi';
+import { FiGithub, FiTwitter, FiLinkedin, FiZap, FiHeart } from 'react-icons/fi';
 
 export default function Footer() {
   return (
     <footer className="footer-hud">
       <div className="footer-glow" />
-      <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
-        <div className="grid md:grid-cols-3 gap-12 mb-8">
+
+      {/* Animated border */}
+      <div className="footer-border-anim" />
+
+      <div className="max-w-7xl mx-auto px-6 py-14 relative z-10">
+        <div className="grid md:grid-cols-3 gap-12 mb-10">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-cyan-300 flex items-center justify-center text-slate-950 font-black text-lg shadow-[0_0_24px_rgba(34,211,238,0.3)]">
-                R
+            <div className="flex items-center gap-3 mb-5">
+              <div className="footer-logo-box">
+                <span>R</span>
+                <div className="footer-logo-pulse" />
               </div>
               <div>
-                <div className="font-bold text-white text-sm">Resume Analyzer</div>
+                <div className="font-bold text-white text-sm tracking-tight">Resume Analyzer</div>
                 <div className="text-xs text-cyan-300 font-semibold flex items-center gap-1">
                   <FiZap size={10} /> AI Powered
                 </div>
               </div>
             </div>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Transform your resume with AI-powered analysis, real-time scoring, and actionable insights.
+            <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
+              Transform your resume with AI-powered analysis, real-time scoring, and actionable insights for career growth.
             </p>
-            <div className="flex gap-3 mt-4">
-              <a href="#" className="footer-social-icon" aria-label="GitHub"><FiGithub size={16} /></a>
-              <a href="#" className="footer-social-icon" aria-label="Twitter"><FiTwitter size={16} /></a>
-              <a href="#" className="footer-social-icon" aria-label="LinkedIn"><FiLinkedin size={16} /></a>
+            <div className="flex gap-3 mt-5">
+              {[
+                { icon: FiGithub, label: 'GitHub' },
+                { icon: FiTwitter, label: 'Twitter' },
+                { icon: FiLinkedin, label: 'LinkedIn' },
+              ].map(({ icon: Icon, label }) => (
+                <a key={label} href="#" className="footer-social-icon" aria-label={label}>
+                  <Icon size={16} />
+                </a>
+              ))}
             </div>
           </div>
 
           {/* Links */}
           <div>
-            <h3 className="font-semibold text-cyan-200 mb-4 text-sm uppercase tracking-wider">Quick Links</h3>
-            <div className="flex flex-col gap-2.5">
-              <Link to="/pricing" className="text-sm text-slate-400 hover:text-cyan-300 transition-colors">
-                Pricing
-              </Link>
-              <Link to="/analyze" className="text-sm text-slate-400 hover:text-cyan-300 transition-colors">
-                Analyze Resume
-              </Link>
-              <Link to="/extract" className="text-sm text-slate-400 hover:text-cyan-300 transition-colors">
-                Extract Info
-              </Link>
-              <a href="mailto:support@resumeanalyzer.com" className="text-sm text-slate-400 hover:text-cyan-300 transition-colors">
+            <h3 className="footer-heading">Quick Links</h3>
+            <div className="flex flex-col gap-3">
+              {[
+                { to: '/pricing', text: 'Pricing' },
+                { to: '/analyze', text: 'Analyze Resume' },
+                { to: '/extract', text: 'Extract Info' },
+              ].map(({ to, text }) => (
+                <Link key={to} to={to} className="footer-link">
+                  {text}
+                </Link>
+              ))}
+              <a href="mailto:support@resumeanalyzer.com" className="footer-link">
                 Contact Support
               </a>
             </div>
@@ -51,25 +62,21 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h3 className="font-semibold text-cyan-200 mb-4 text-sm uppercase tracking-wider">Legal</h3>
-            <div className="flex flex-col gap-2.5">
-              <a href="#" className="text-sm text-slate-400 hover:text-cyan-300 transition-colors">
-                Privacy Policy
-              </a>
-              <a href="#" className="text-sm text-slate-400 hover:text-cyan-300 transition-colors">
-                Terms of Service
-              </a>
-              <a href="#" className="text-sm text-slate-400 hover:text-cyan-300 transition-colors">
-                Cookie Policy
-              </a>
+            <h3 className="footer-heading">Legal</h3>
+            <div className="flex flex-col gap-3">
+              {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((text) => (
+                <a key={text} href="#" className="footer-link">
+                  {text}
+                </a>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-cyan-200/10 pt-8 text-center">
-          <p className="text-xs text-slate-500">
-            &copy; {new Date().getFullYear()} Resume Analyzer. All rights reserved. Built with React + Node.js
+        <div className="footer-bottom">
+          <p className="text-xs text-slate-500 flex items-center gap-1.5 justify-center">
+            &copy; {new Date().getFullYear()} Resume Analyzer. Built with <FiHeart size={10} className="text-rose-400" /> using React + Node.js
           </p>
         </div>
       </div>

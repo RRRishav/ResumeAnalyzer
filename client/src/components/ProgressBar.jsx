@@ -1,37 +1,41 @@
 import { FiFileText, FiSearch, FiCpu, FiCheckCircle } from 'react-icons/fi';
 
 const stages = [
-  { key: 'parsing', label: 'Parsing Document', icon: FiFileText },
-  { key: 'extracting', label: 'Extracting Skills', icon: FiSearch },
+  { key: 'parsing', label: 'Parsing', icon: FiFileText },
+  { key: 'extracting', label: 'Extracting', icon: FiSearch },
   { key: 'analyzing', label: 'AI Analysis', icon: FiCpu },
-  { key: 'finalizing', label: 'Generating Report', icon: FiCheckCircle },
+  { key: 'finalizing', label: 'Report', icon: FiCheckCircle },
 ];
 
 export default function ProgressBar({ stage = '', progress = 0, message = '' }) {
   const currentIndex = stages.findIndex(s => s.key === stage);
 
   return (
-    <div className="animate-fade-in-up">
+    <div className="progress-3d animate-fade-in-up">
       {/* Stages */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="progress-stages-row">
         {stages.map((s, i) => {
           const Icon = s.icon;
           const isActive = i === currentIndex;
           const isComplete = i < currentIndex || stage === 'complete';
 
           return (
-            <div key={s.key} className="flex flex-col items-center gap-2">
-              <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${
+            <div key={s.key} className="progress-stage-item">
+              {i > 0 && (
+                <div className={`progress-connector ${isComplete ? 'progress-connector-done' : ''}`} />
+              )}
+              <div className={`progress-stage-circle ${
                 isComplete
-                  ? 'bg-gradient-to-r from-indigo-500 to-cyan-400 border-transparent text-white'
+                  ? 'progress-stage-complete'
                   : isActive
-                    ? 'border-indigo-500 bg-indigo-500/20 text-indigo-400 animate-pulse'
-                    : 'border-gray-600 bg-slate-800/50 text-gray-500'
+                    ? 'progress-stage-active'
+                    : 'progress-stage-pending'
               }`}>
-                <Icon size={20} />
+                <Icon size={18} />
+                {isActive && <span className="progress-pulse-ring" />}
               </div>
-              <span className={`text-xs font-medium text-center ${
-                isActive ? 'text-indigo-400' : isComplete ? 'text-cyan-400' : 'text-gray-400'
+              <span className={`progress-stage-label ${
+                isActive ? 'text-cyan-300' : isComplete ? 'text-emerald-400' : 'text-slate-500'
               }`}>
                 {s.label}
               </span>
@@ -41,22 +45,22 @@ export default function ProgressBar({ stage = '', progress = 0, message = '' }) 
       </div>
 
       {/* Progress Bar */}
-      <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden border border-white/10 mb-4">
+      <div className="progress-track">
         <div
-          className="h-full bg-gradient-to-r from-indigo-600 to-cyan-500 rounded-full transition-all duration-500 relative"
+          className="progress-fill"
           style={{ width: `${Math.min(progress, 100)}%` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-          <div className="absolute inset-0 shadow-glow" />
+          <div className="progress-shimmer" />
+          <div className="progress-glow-tip" />
         </div>
       </div>
 
       {/* Info */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-3">
         <div>
-          {message && <p className="text-sm text-gray-400">{message}</p>}
+          {message && <p className="text-sm text-slate-400">{message}</p>}
         </div>
-        <span className="text-sm font-bold text-gradient">{Math.round(progress)}%</span>
+        <span className="progress-percent-badge">{Math.round(progress)}%</span>
       </div>
     </div>
   );

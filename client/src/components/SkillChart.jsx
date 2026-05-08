@@ -22,10 +22,10 @@ export default function SkillChart({ skillCategories = {} }) {
     if (active && payload && payload.length) {
       const item = payload[0].payload;
       return (
-        <div className="skill-chart-tooltip">
-          <p className="skill-chart-tooltip-title">{item.fullName}</p>
-          <p className="skill-chart-tooltip-count">{item.count} skills</p>
-          <p className="skill-chart-tooltip-list">{item.skills.join(', ')}</p>
+        <div className="skill-tooltip-3d">
+          <p className="skill-tooltip-title">{item.fullName}</p>
+          <p className="skill-tooltip-count">{item.count} skills detected</p>
+          <p className="skill-tooltip-list">{item.skills.join(', ')}</p>
         </div>
       );
     }
@@ -33,13 +33,13 @@ export default function SkillChart({ skillCategories = {} }) {
   };
 
   return (
-    <div className="skill-chart">
+    <div className="skill-chart-3d">
       <ResponsiveContainer width="100%" height={320}>
         <RadarChart data={data} outerRadius="70%">
-          <PolarGrid stroke="rgba(255,255,255,0.06)" />
+          <PolarGrid stroke="rgba(34,211,238,0.08)" strokeDasharray="3 3" />
           <PolarAngleAxis
             dataKey="category"
-            tick={{ fill: '#a0a0b8', fontSize: 11, fontWeight: 500 }}
+            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
           />
           <PolarRadiusAxis
             domain={[0, maxCount]}
@@ -49,11 +49,17 @@ export default function SkillChart({ skillCategories = {} }) {
           <Radar
             name="Skills"
             dataKey="count"
-            stroke="#6c63ff"
-            fill="#6c63ff"
-            fillOpacity={0.2}
-            strokeWidth={2}
+            stroke="#22d3ee"
+            fill="url(#skillRadarGrad)"
+            fillOpacity={0.3}
+            strokeWidth={2.5}
           />
+          <defs>
+            <linearGradient id="skillRadarGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.4} />
+              <stop offset="100%" stopColor="#818cf8" stopOpacity={0.1} />
+            </linearGradient>
+          </defs>
           <Tooltip content={<CustomTooltip />} />
         </RadarChart>
       </ResponsiveContainer>

@@ -1,10 +1,13 @@
 import { cn } from '../../lib/utils';
 
-export function Card({ className = '', ...props }) {
+export function Card({ className = '', hover3d = false, ...props }) {
   return (
     <div
       className={cn(
-        'rounded-lg border border-white/10 bg-slate-950/62 text-slate-100 shadow-[0_18px_60px_rgba(2,6,23,0.35)] backdrop-blur-xl',
+        'card-3d rounded-xl border border-white/[0.08] bg-slate-950/60 text-slate-100 backdrop-blur-2xl',
+        'shadow-[0_20px_60px_rgba(2,6,23,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]',
+        'transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]',
+        'hover:border-cyan-300/20 hover:shadow-[0_28px_80px_rgba(2,6,23,0.5),0_0_40px_rgba(34,211,238,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]',
         className
       )}
       {...props}
