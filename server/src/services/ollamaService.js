@@ -1,19 +1,9 @@
 const http = require('http');
-const https = require('https');
 require('dotenv').config();
 
 // ─── Ollama (Local) Config ──────────────────────────────────────────
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
-
-// ─── Groq (Cloud Fallback) Config ───────────────────────────────────
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-// ─── Provider Detection ─────────────────────────────────────────────
-// In production, prefer Groq. Locally, prefer Ollama.
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 /**
  * Parse the OLLAMA_URL into hostname and port for http.request
@@ -125,84 +115,20 @@ async function checkOllamaLocal() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-//  GROQ (Cloud Fallback) — HTTPS requests to api.groq.com
-// ─────────────────────────────────────────────────────────────────────
-
-function groqRequest(messages, timeout = 60000) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      model: GROQ_MODEL,
-      messages,
-      temperature: 0.1,
-      max_tokens: 4096,
-      top_p: 0.9,
-      response_format: { type: 'json_object' },
-    });
-
-    const options = {
-      hostname: 'api.groq.com',
-      path: '/openai/v1/chat/completions',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Length': Buffer.byteLength(body),
-      },
-      timeout,
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          resolve({ status: res.statusCode, data: JSON.parse(data) });
-        } catch (e) {
-          resolve({ status: res.statusCode, data, raw: true });
-        }
-      });
-    });
-
-    req.on('error', (err) => reject(err));
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('Groq API request timed out'));
-    });
-
-    req.write(body);
-    req.end();
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────
-//  UNIFIED API — Smart provider selection with fallback
+//  UNIFIED API — Ollama Only
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Detect which LLM provider is available.
- * Priority: Ollama (local) first → Groq (cloud) fallback
- * In production: Groq first (Ollama won't be available on hosting)
+ * Detect if Ollama is available
  */
 async function detectProvider() {
-  if (IS_PRODUCTION) {
-    // In production, check Groq first
-    if (GROQ_API_KEY) return 'groq';
-    // Unlikely but try Ollama in case self-hosted
-    const ollamaUp = await checkOllamaLocal();
-    if (ollamaUp) return 'ollama';
-    return null;
-  }
-
-  // In development, check Ollama first
   const ollamaUp = await checkOllamaLocal();
   if (ollamaUp) return 'ollama';
-  // Fall back to Groq if Ollama isn't running
-  if (GROQ_API_KEY) return 'groq';
   return null;
 }
 
 /**
- * Health check — reports which provider is active
+ * Health check — reports Ollama status
  */
 async function checkOllamaHealth() {
   const provider = await detectProvider();
@@ -217,26 +143,11 @@ async function checkOllamaHealth() {
     };
   }
 
-  if (provider === 'groq') {
-    return {
-      healthy: true,
-      model: GROQ_MODEL,
-      modelAvailable: true,
-      provider: 'Groq Cloud (Llama)',
-      url: GROQ_URL,
-    };
-  }
-
-  // Neither available
-  const hints = IS_PRODUCTION
-    ? 'Set GROQ_API_KEY in environment variables. Get a free key at https://console.groq.com'
-    : 'Start Ollama locally, or set GROQ_API_KEY in .env for cloud fallback';
-
   return {
     healthy: false,
-    error: `No LLM provider available. ${hints}`,
-    url: IS_PRODUCTION ? GROQ_URL : OLLAMA_URL,
-    model: IS_PRODUCTION ? GROQ_MODEL : OLLAMA_MODEL,
+    error: 'Ollama is not running. Start Ollama with: ollama serve',
+    url: OLLAMA_URL,
+    model: OLLAMA_MODEL,
   };
 }
 
@@ -279,68 +190,41 @@ Return this exact JSON structure:
 }`;
 
 /**
- * Extract structured resume data — auto-selects Ollama or Groq
+ * Extract structured resume data using Ollama
  */
 async function extractResumeData(resumeText) {
   const startTime = Date.now();
   const provider = await detectProvider();
 
   if (!provider) {
-    throw new Error(
-      IS_PRODUCTION
-        ? 'No LLM provider available. Set GROQ_API_KEY in environment variables.'
-        : 'No LLM provider available. Start Ollama locally or set GROQ_API_KEY in .env.'
-    );
+    throw new Error('Ollama is not running. Start Ollama with: ollama serve');
   }
 
   const userPrompt = `Extract information from this resume:\n\n${resumeText.substring(0, 12000)}`;
 
   try {
-    let rawResponse = '';
-    let modelUsed = '';
+    console.log(`🦙 Extracting via Ollama (${OLLAMA_MODEL})...`);
+    const response = await ollamaRequest(userPrompt, SYSTEM_PROMPT);
 
-    if (provider === 'ollama') {
-      // ── Ollama (local) ──
-      console.log(`🦙 Extracting via Ollama (${OLLAMA_MODEL})...`);
-      const response = await ollamaRequest(userPrompt, SYSTEM_PROMPT);
-
-      if (response.status !== 200) {
-        const errMsg = response.raw
-          ? `Ollama returned status ${response.status}`
-          : (response.data?.error || `Ollama returned status ${response.status}`);
-        throw new Error(errMsg);
-      }
-
-      rawResponse = response.data?.response || '';
-      modelUsed = OLLAMA_MODEL;
-    } else {
-      // ── Groq (cloud) ──
-      console.log(`☁️  Extracting via Groq (${GROQ_MODEL})...`);
-      const response = await groqRequest([
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ]);
-
-      if (response.status !== 200) {
-        const errMsg = response.data?.error?.message || `Groq API returned status ${response.status}`;
-        throw new Error(errMsg);
-      }
-
-      rawResponse = response.data?.choices?.[0]?.message?.content || '';
-      modelUsed = GROQ_MODEL;
+    if (response.status !== 200) {
+      const errMsg = response.raw
+        ? `Ollama returned status ${response.status}`
+        : (response.data?.error || `Ollama returned status ${response.status}`);
+      throw new Error(errMsg);
     }
 
+    const rawResponse = response.data?.response || '';
     const processingTime = Date.now() - startTime;
     const extracted = parseExtractedJSON(rawResponse);
 
     return {
       ...extracted,
-      model_used: modelUsed,
-      provider_used: provider,
+      model_used: OLLAMA_MODEL,
+      provider_used: 'ollama',
       processing_time_ms: processingTime,
     };
   } catch (error) {
-    throw new Error(`Extraction failed (${provider}): ${error.message}`);
+    throw new Error(`Extraction failed: ${error.message}`);
   }
 }
 
@@ -442,4 +326,146 @@ function getEmptyExtraction() {
   };
 }
 
-module.exports = { checkOllamaHealth, extractResumeData };
+// ─────────────────────────────────────────────────────────────────────
+//  RESUME ANALYSIS — Using Ollama
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Analyze resume with Ollama
+ */
+async function analyzeWithOllama(resumeText, extractedSkills = []) {
+  try {
+    const provider = await detectProvider();
+
+    if (!provider) {
+      throw new Error('Ollama is not running');
+    }
+
+    const analysisPrompt = `You are an expert HR recruiter. Analyze this resume and return ONLY valid JSON (no markdown fences).
+
+RESUME:
+"""
+${resumeText.substring(0, 8000)}
+"""
+
+DETECTED SKILLS: ${extractedSkills.join(', ')}
+
+Return JSON with this exact structure:
+{
+  "overall_score": <0-100>,
+  "ats_score": <0-100>,
+  "experience_level": "<Entry Level|Junior|Mid-Level|Senior|Lead|Executive>",
+  "strengths": ["<str1>","<str2>","<str3>","<str4>","<str5>"],
+  "weaknesses": ["<w1>","<w2>","<w3>","<w4>"],
+  "suggestions": [{"priority":"high|medium|low","category":"formatting|content|skills|experience","text":"<suggestion>"}],
+  "career_recommendations": [{"role":"<title>","match_score":<0-100>,"reason":"<why>"}],
+  "summary": "<2-3 sentence summary>",
+  "missing_skills": ["<skill>"],
+  "keywords_to_add": ["<keyword>"]
+}`;
+
+    const systemPrompt = 'You are an expert resume analyzer. Return ONLY valid JSON, no explanation or markdown.';
+
+    console.log(`🦙 Analyzing resume with Ollama (${OLLAMA_MODEL})...`);
+    const response = await ollamaRequest(analysisPrompt, systemPrompt);
+
+    if (response.status !== 200) {
+      throw new Error(`Ollama returned status ${response.status}`);
+    }
+
+    const rawResponse = response.data?.response || '';
+    let cleaned = rawResponse
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
+
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+
+    if (jsonStart === -1 || jsonEnd === -1) {
+      throw new Error('No JSON found in response');
+    }
+
+    cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+    const analysis = JSON.parse(cleaned);
+
+    // Ensure scores are valid numbers between 0-100
+    analysis.overall_score = Math.min(100, Math.max(0, parseInt(analysis.overall_score) || 50));
+    analysis.ats_score = Math.min(100, Math.max(0, parseInt(analysis.ats_score) || 50));
+
+    return analysis;
+  } catch (error) {
+    console.error('Ollama analysis error:', error.message);
+    return getFallbackAnalysis(resumeText, extractedSkills);
+  }
+}
+
+/**
+ * Fallback analysis when Ollama fails
+ */
+function getFallbackAnalysis(resumeText, extractedSkills = []) {
+  const wordCount = resumeText.split(/\s+/).length;
+  const checks = {
+    email: /[\w.-]+@[\w.-]+\.\w+/.test(resumeText),
+    phone: /[\d\s\-().]{10,}/.test(resumeText),
+    linkedin: /linkedin/i.test(resumeText),
+    summary: /summary|objective|about|profile/i.test(resumeText),
+    experience: /experience|work history|employment/i.test(resumeText),
+    education: /education|university|degree|bachelor|master/i.test(resumeText),
+    projects: /project|portfolio/i.test(resumeText),
+    certs: /certification|certified/i.test(resumeText),
+  };
+
+  let score = 40, ats = 35;
+  if (checks.email) { score += 5; ats += 5; }
+  if (checks.phone) { score += 5; ats += 5; }
+  if (checks.linkedin) { score += 3; ats += 3; }
+  if (checks.summary) { score += 8; ats += 8; }
+  if (checks.experience) { score += 10; ats += 10; }
+  if (checks.education) { score += 8; ats += 8; }
+  if (checks.projects) { score += 5; ats += 3; }
+  if (checks.certs) { score += 5; ats += 5; }
+  if (extractedSkills.length > 5) { score += 5; ats += 5; }
+  if (extractedSkills.length > 10) { score += 5; ats += 5; }
+  if (wordCount > 200 && wordCount < 1000) { score += 5; ats += 5; }
+
+  let level = 'Entry Level';
+  if (/senior|lead|principal|architect/i.test(resumeText)) level = 'Senior';
+  else if (/mid.?level|[3-5]\+?\s*years/i.test(resumeText)) level = 'Mid-Level';
+  else if (/junior|[1-2]\+?\s*year/i.test(resumeText)) level = 'Junior';
+
+  const strengths = [], weaknesses = [];
+  if (checks.email && checks.phone) strengths.push('Complete contact information');
+  else weaknesses.push('Missing contact information');
+  if (checks.summary) strengths.push('Professional summary included');
+  else weaknesses.push('Missing professional summary');
+  if (checks.experience) strengths.push('Work experience documented');
+  else weaknesses.push('No work experience section');
+  if (checks.education) strengths.push('Education section present');
+  else weaknesses.push('Education details missing');
+  if (extractedSkills.length > 5) strengths.push(`${extractedSkills.length} skills detected`);
+  else weaknesses.push('Add more technical keywords');
+
+  return {
+    overall_score: Math.min(score, 78),
+    ats_score: Math.min(ats, 75),
+    experience_level: level,
+    strengths, weaknesses,
+    suggestions: [
+      { priority: 'high', category: 'content', text: 'Add quantifiable achievements with metrics' },
+      { priority: 'high', category: 'formatting', text: 'Use ATS-friendly format with clear headings' },
+      { priority: 'medium', category: 'skills', text: 'Add industry-specific keywords' },
+      { priority: 'medium', category: 'experience', text: 'Use strong action verbs' },
+      { priority: 'low', category: 'content', text: 'Add portfolio or GitHub link' },
+    ],
+    career_recommendations: [
+      { role: 'Software Developer', match_score: 70, reason: 'Technical skills match' },
+      { role: 'Full Stack Engineer', match_score: 65, reason: 'Frontend + backend skills' },
+    ],
+    summary: `${level} candidate with ${extractedSkills.length} skills. Needs more quantifiable achievements.`,
+    missing_skills: ['TypeScript', 'Docker', 'CI/CD'],
+    keywords_to_add: ['agile', 'cross-functional', 'optimization'],
+  };
+}
+
+module.exports = { checkOllamaHealth, extractResumeData, analyzeWithOllama };

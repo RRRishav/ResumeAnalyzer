@@ -1,6 +1,6 @@
 const { parseResume } = require('./parserService');
 const { extractSkills } = require('./tfidfService');
-const { analyzeWithGemini } = require('./geminiService');
+const { analyzeWithOllama } = require('./ollamaService');
 
 /**
  * Full analysis pipeline with Socket.io progress events
@@ -25,7 +25,7 @@ async function runAnalysis(filePath, filename, userId, io, socketId) {
 
     // Stage 3: AI Analysis
     emit('analyzing', 60, 'Running AI-powered deep analysis...');
-    const geminiResult = await analyzeWithGemini(text, topSkills);
+    const analysisResult = await analyzeWithOllama(text, topSkills);
     emit('analyzing', 80, 'Generating insights and recommendations...');
 
     // Stage 4: Combine results
@@ -35,18 +35,18 @@ async function runAnalysis(filePath, filename, userId, io, socketId) {
       filename,
       fileType,
       wordCount,
-      overall_score: geminiResult.overall_score,
-      ats_score: geminiResult.ats_score,
-      experience_level: geminiResult.experience_level,
+      overall_score: analysisResult.overall_score,
+      ats_score: analysisResult.ats_score,
+      experience_level: analysisResult.experience_level,
       skills,
       skillCategories,
-      strengths: geminiResult.strengths || [],
-      weaknesses: geminiResult.weaknesses || [],
-      suggestions: geminiResult.suggestions || [],
-      career_recommendations: geminiResult.career_recommendations || [],
-      gemini_insights: geminiResult.summary || '',
-      missing_skills: geminiResult.missing_skills || [],
-      keywords_to_add: geminiResult.keywords_to_add || [],
+      strengths: analysisResult.strengths || [],
+      weaknesses: analysisResult.weaknesses || [],
+      suggestions: analysisResult.suggestions || [],
+      career_recommendations: analysisResult.career_recommendations || [],
+      gemini_insights: analysisResult.summary || '',
+      missing_skills: analysisResult.missing_skills || [],
+      keywords_to_add: analysisResult.keywords_to_add || [],
       raw_text: text,
     };
 

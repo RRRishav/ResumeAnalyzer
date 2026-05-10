@@ -6,7 +6,6 @@ const path = require('path');
 require('dotenv').config();
 
 const { initDB } = require('./config/db');
-const { initGemini } = require('./services/geminiService');
 const { checkOllamaHealth } = require('./services/ollamaService');
 
 const authRoutes = require('./routes/authRoutes');
@@ -97,7 +96,6 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
   try {
     await initDB();
-    initGemini();
 
     // Check LLM provider connectivity (non-blocking)
     checkOllamaHealth().then((status) => {
