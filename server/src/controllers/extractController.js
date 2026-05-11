@@ -30,7 +30,10 @@ exports.upload = async (req, res) => {
       const providerLabel = process.env.NODE_ENV === 'production' ? 'Groq Cloud' : 'AI';
       emit('extracting', 35, `Sending to ${providerLabel} for extraction...`);
       const extracted = await extractResumeData(text);
-      emit('extracting', 70, `${extracted.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama'} extraction complete, processing results...`);
+      const completedProvider = extracted.provider_used === 'local-fast'
+        ? 'Local parser'
+        : (extracted.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama');
+      emit('extracting', 70, `${completedProvider} extraction complete, processing results...`);
 
       // Stage 3: Process and save
       emit('processing', 80, 'Saving extraction results...');
@@ -43,15 +46,21 @@ exports.upload = async (req, res) => {
           name: extracted.name,
           phone: extracted.phone,
           email: extracted.email,
+          location: extracted.location,
+          professional_summary: extracted.professional_summary,
+          total_experience: extracted.total_experience,
           links: extracted.links,
           tenth_marks: extracted.tenth_marks,
           twelfth_marks: extracted.twelfth_marks,
           degree: extracted.degree,
           stream: extracted.stream,
           cgpa: extracted.cgpa,
+          education: extracted.education,
           projects: extracted.projects,
           skills: extracted.skills,
           certifications: extracted.certifications,
+          achievements: extracted.achievements,
+          languages: extracted.languages,
           experience: extracted.experience,
         },
         model_used: extracted.model_used,

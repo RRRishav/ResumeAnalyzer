@@ -14,6 +14,7 @@ export default function FileUpload({ file, onFileSelect, onClear }) {
     accept: {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt'],
     },
     maxFiles: 1,
     maxSize: 10 * 1024 * 1024,
@@ -53,6 +54,9 @@ export default function FileUpload({ file, onFileSelect, onClear }) {
             </span>
             <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
               DOCX
+            </span>
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
+              TXT
             </span>
             <span className="text-slate-600">•</span>
             <span>Max 10MB</span>

@@ -12,6 +12,7 @@ import {
   FiGithub,
   FiLinkedin,
   FiMail,
+  FiMapPin,
   FiPhone,
   FiRefreshCcw,
   FiSend,
@@ -27,6 +28,7 @@ import {
   FiLink,
   FiCloud,
   FiServer,
+  FiTrendingUp,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
@@ -92,10 +94,10 @@ export default function ExtractInfo() {
         setLlmStatus('online');
         setLlmModel(res.data.model || '');
         setLlmProvider(res.data.provider || '');
-        toast.success(`LLM connected — ${res.data.provider || 'Ready'}`, 3000);
+        toast.success(`LLM connected â€” ${res.data.provider || 'Ready'}`, 3000);
       } else {
         setLlmStatus('offline');
-        toast.warning('No LLM provider available. Check Ollama or Groq config.', 5000);
+        toast.warning('No LLM provider available. Check Ollama .', 5000);
       }
     } catch {
       setLlmStatus('offline');
@@ -109,7 +111,7 @@ export default function ExtractInfo() {
     setResult(null);
     setExtracting(true);
     setProgress({ stage: 'parsing', progress: 5, message: 'Starting extraction...' });
-    toast.info('Extraction started — processing your resume...', 3000);
+    toast.info('Extraction started â€” processing your resume...', 3000);
 
     try {
       const formData = new FormData();
@@ -126,7 +128,7 @@ export default function ExtractInfo() {
       setResult(res.data.extraction);
       setProgress({ stage: 'complete', progress: 100, message: 'Extraction complete!' });
       refreshUser();
-      toast.success(`Extraction complete via ${res.data.extraction?.provider_used || 'AI'} — ${res.data.extraction?.model_used || ''}`, 5000);
+      toast.success(`Extraction complete via ${res.data.extraction?.provider_used || 'AI'} â€” ${res.data.extraction?.model_used || ''}`, 5000);
     } catch (err) {
       const msg = err.response?.data?.error || 'Extraction failed. Make sure an LLM provider is available.';
       setError(msg);
@@ -145,9 +147,22 @@ export default function ExtractInfo() {
   };
 
   const data = result?.extracted_data || {};
+  const educationItems = data.education?.length
+    ? data.education
+    : (data.degree || data.stream || data.cgpa || data.tenth_marks || data.twelfth_marks)
+      ? [{
+          degree: data.degree || 'Education',
+          institution: null,
+          stream: data.stream,
+          score: data.cgpa,
+          duration: null,
+        }]
+      : [];
+  const contactMissing = !data.name && !data.location && !data.phone?.length && !data.email?.length
+    && !data.links?.github && !data.links?.linkedin && !data.links?.portfolio;
 
   const formatTime = (ms) => {
-    if (!ms) return '—';
+    if (!ms) return 'â€”';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(1)}s`;
   };
@@ -156,6 +171,12 @@ export default function ExtractInfo() {
   const isCloud = llmProvider?.toLowerCase().includes('groq') || llmProvider?.toLowerCase().includes('cloud');
   const providerIcon = isCloud ? <FiCloud size={13} /> : <FiServer size={13} />;
   const providerLabel = llmProvider || (isCloud ? 'Groq Cloud' : 'Ollama Local');
+  const resultProviderLabel = result?.provider_used === 'local-fast'
+    ? 'Local Fast Parser'
+    : (result?.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama Local');
+  const resultProviderShort = result?.provider_used === 'local-fast'
+    ? 'Local Parser'
+    : (result?.provider_used === 'groq' ? 'Groq' : 'Ollama');
 
   return (
     <div className="extract-page">
@@ -169,14 +190,14 @@ export default function ExtractInfo() {
               {llmStatus === 'checking' && 'Checking LLM...'}
               {llmStatus === 'online' && (
                 <span className="flex items-center gap-1.5">
-                  {providerIcon} {providerLabel}{llmModel ? ` · ${llmModel}` : ''}
+                  {providerIcon} {providerLabel}{llmModel ? ` Â· ${llmModel}` : ''}
                 </span>
               )}
               {llmStatus === 'offline' && 'LLM Offline'}
             </div>
           </div>
           <h1>Extract <span className="text-gradient">Resume Info</span></h1>
-          <p>Upload your resume and let AI extract structured data — Ollama locally, Groq in production.</p>
+          <p>Upload your resume and let AI extract structured data .</p>
         </div>
 
         {/* Upload / Results */}
@@ -199,14 +220,14 @@ export default function ExtractInfo() {
                 onClick={handleExtract}
                 disabled={!file || extracting || llmStatus === 'offline'}
               >
-                <FiSend /> Extract Information
+                <FiSend /> Extract Resume
               </Button>
             )}
 
             {llmStatus === 'offline' && (
               <div className="extract-error" style={{ marginTop: '0.75rem' }}>
                 <FiAlertTriangle />
-                LLM service is unavailable. The server may still be starting up — please retry in a moment.
+                LLM service is unavailable. The server may still be starting up â€” please retry in a moment.
                 <Button size="sm" variant="outline" onClick={checkLLM} style={{ marginLeft: 'auto' }}>
                   <FiRefreshCcw size={14} /> Retry
                 </Button>
@@ -220,7 +241,7 @@ export default function ExtractInfo() {
               <div>
                 <Badge variant="success"><FiCheckCircle /> Extraction Complete</Badge>
                 <h2>{data.name || result.filename}</h2>
-                <p>Extracted from {result.filename} using <strong>{result.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama Local'}</strong> · {result.model_used}</p>
+                <p>Extracted from {result.filename} using <strong>{resultProviderLabel}</strong> · {result.model_used}</p>
                 <div className="extract-result-actions">
                   <Button onClick={handleReset}><FiRefreshCcw /> Extract Another</Button>
                   <Button variant="outline" onClick={() => navigate(`/extract-detail/${result.id}`)}>
@@ -233,7 +254,7 @@ export default function ExtractInfo() {
                   <span>Provider</span>
                   <strong className="flex items-center gap-1">
                     {result.provider_used === 'groq' ? <FiCloud size={13} /> : <FiServer size={13} />}
-                    {result.provider_used === 'groq' ? 'Groq' : 'Ollama'}
+                    {resultProviderShort}
                   </strong>
                 </div>
                 <div className="extract-meta-item">
@@ -248,11 +269,27 @@ export default function ExtractInfo() {
                   <span>Words</span>
                   <strong>{result.word_count}</strong>
                 </div>
+                <div className="extract-meta-item">
+                  <span>Experience</span>
+                  <strong>{data.total_experience || 'N/A'}</strong>
+                </div>
               </div>
             </Card>
 
             {/* Sections Grid */}
             <div className="extract-grid">
+              <Card className="extract-section summary-section extract-grid-full extract-fade-in d2">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiFileText /></div>
+                  Professional Summary
+                </div>
+                {data.professional_summary ? (
+                  <p className="extract-summary-text">{data.professional_summary}</p>
+                ) : (
+                  <div className="extract-empty">No professional summary found</div>
+                )}
+              </Card>
+
               {/* Personal Info */}
               <Card className="extract-section personal extract-fade-in d2">
                 <div className="extract-section-title">
@@ -283,6 +320,13 @@ export default function ExtractInfo() {
                       </span>
                     </div>
                   ))}
+                  {data.location && (
+                    <div className="personal-info-row">
+                      <FiMapPin size={14} />
+                      <span className="personal-info-label">Location</span>
+                      <span className="personal-info-value">{data.location}</span>
+                    </div>
+                  )}
                   {data.links?.github && (
                     <div className="personal-info-row">
                       <FiGithub size={14} />
@@ -319,7 +363,7 @@ export default function ExtractInfo() {
                       </span>
                     </div>
                   ))}
-                  {!data.name && !data.phone?.length && !data.email?.length && (
+                  {contactMissing && (
                     <div className="extract-empty">No personal information found</div>
                   )}
                 </div>
@@ -331,7 +375,24 @@ export default function ExtractInfo() {
                   <div className="extract-section-icon"><FiBookOpen /></div>
                   Education
                 </div>
-                <div className="education-grid">
+                {educationItems.length > 0 ? (
+                  <div className="extract-timeline">
+                    {educationItems.map((edu, i) => (
+                      <div key={i} className="extract-timeline-card">
+                        <div className="extract-timeline-title">{edu.degree || 'Education'}</div>
+                        {edu.institution && <div className="extract-timeline-subtitle">{edu.institution}</div>}
+                        <div className="extract-mini-tags">
+                          {edu.stream && <span>{edu.stream}</span>}
+                          {edu.score && <span>{edu.score}</span>}
+                          {edu.duration && <span>{edu.duration}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="extract-empty">No education details found</div>
+                )}
+                <div className="education-grid education-score-grid">
                   <div className="education-item">
                     <div className="education-item-label">10th Marks</div>
                     <div className={`education-item-value ${!data.tenth_marks ? 'empty' : ''}`}>
@@ -399,7 +460,7 @@ export default function ExtractInfo() {
                         <div className="extract-cert-name">{cert.name}</div>
                         <div className="extract-cert-meta">
                           {cert.issuer && <span>{cert.issuer}</span>}
-                          {cert.issuer && cert.year && <span> · </span>}
+                          {cert.issuer && cert.year && <span> Â· </span>}
                           {cert.year && <span>{cert.year}</span>}
                         </div>
                       </div>
@@ -407,6 +468,36 @@ export default function ExtractInfo() {
                   ))
                 ) : (
                   <div className="extract-empty">No certifications found</div>
+                )}
+              </Card>
+
+              <Card className="extract-section achievements-section extract-fade-in d6">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiTrendingUp /></div>
+                  Achievements
+                </div>
+                {data.achievements?.length > 0 ? (
+                  <ul className="extract-bullet-list">
+                    {data.achievements.map((item, i) => <li key={i}>{item}</li>)}
+                  </ul>
+                ) : (
+                  <div className="extract-empty">No achievements found</div>
+                )}
+              </Card>
+
+              <Card className="extract-section languages-section extract-fade-in d6">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiGlobe /></div>
+                  Languages
+                </div>
+                {data.languages?.length > 0 ? (
+                  <div className="extract-skills-grid">
+                    {data.languages.map((language, i) => (
+                      <span key={i} className="extract-language-tag">{language}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="extract-empty">No languages found</div>
                 )}
               </Card>
 
@@ -441,12 +532,15 @@ export default function ExtractInfo() {
               </Card>
 
               {/* Experience */}
-              {data.experience?.length > 0 && (
-                <Card className="extract-section experience-section extract-grid-full extract-fade-in d7">
-                  <div className="extract-section-title">
-                    <div className="extract-section-icon"><FiBriefcase /></div>
-                    Experience
-                  </div>
+              <Card className="extract-section experience-section extract-grid-full extract-fade-in d7">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiBriefcase /></div>
+                  Work Experience
+                  {data.total_experience && (
+                    <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.total_experience}</Badge>
+                  )}
+                </div>
+                {data.experience?.length > 0 ? (
                   <div className="extract-exp-timeline">
                     {data.experience.map((exp, i) => (
                       <div key={i} className="extract-exp-item">
@@ -457,8 +551,10 @@ export default function ExtractInfo() {
                       </div>
                     ))}
                   </div>
-                </Card>
-              )}
+                ) : (
+                  <div className="extract-empty">No work experience found</div>
+                )}
+              </Card>
             </div>
           </div>
         )}
@@ -466,3 +562,4 @@ export default function ExtractInfo() {
     </div>
   );
 }
+

@@ -1,11 +1,13 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const initDB = async () => {
   try {
     const mongoUri = process.env.MONGO_URI || process.env.DATABASE_URL;
     if (!mongoUri) {
-      throw new Error('MONGO_URI or DATABASE_URL is required');
+      console.warn('MongoDB not configured. DB-backed routes will be unavailable.');
+      return false;
     }
 
     console.log('🔄 Connecting to MongoDB...');
@@ -15,9 +17,11 @@ const initDB = async () => {
       family: 4,
     });
     console.log('✅ Connected to MongoDB');
+    return true;
   } catch (error) {
     console.error(' MongoDB connection error:', error.message);
-    throw error;
+    console.warn('Starting API without MongoDB. Fix MONGO_URI/IP whitelist to enable auth, history, and saved reports.');
+    return false;
   }
 };
 

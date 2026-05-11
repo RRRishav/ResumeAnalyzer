@@ -9,6 +9,9 @@ const extractionSchema = new mongoose.Schema(
       name: { type: String, default: null },
       phone: { type: [String], default: [] },
       email: { type: [String], default: [] },
+      location: { type: String, default: null },
+      professional_summary: { type: String, default: null },
+      total_experience: { type: String, default: null },
       links: {
         portfolio: { type: String, default: null },
         github: { type: String, default: null },
@@ -20,6 +23,15 @@ const extractionSchema = new mongoose.Schema(
       degree: { type: String, default: null },
       stream: { type: String, default: null },
       cgpa: { type: String, default: null },
+      education: [
+        {
+          degree: { type: String, default: null },
+          institution: { type: String, default: null },
+          stream: { type: String, default: null },
+          score: { type: String, default: null },
+          duration: { type: String, default: null },
+        },
+      ],
       projects: [
         {
           title: { type: String },
@@ -35,6 +47,8 @@ const extractionSchema = new mongoose.Schema(
           year: { type: String, default: null },
         },
       ],
+      achievements: { type: [String], default: [] },
+      languages: { type: [String], default: [] },
       experience: [
         {
           role: { type: String },

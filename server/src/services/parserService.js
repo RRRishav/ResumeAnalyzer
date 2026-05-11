@@ -15,6 +15,8 @@ async function parseResume(filePath) {
       text = await parsePDF(filePath);
     } else if (ext === '.docx' || ext === '.doc') {
       text = await parseDOCX(filePath);
+    } else if (ext === '.txt') {
+      text = await parseTXT(filePath);
     } else {
       throw new Error(`Unsupported file type: ${ext}`);
     }
@@ -45,6 +47,10 @@ async function parsePDF(filePath) {
 async function parseDOCX(filePath) {
   const result = await mammoth.extractRawText({ path: filePath });
   return result.value;
+}
+
+async function parseTXT(filePath) {
+  return fs.readFileSync(filePath, 'utf8');
 }
 
 function cleanText(text) {

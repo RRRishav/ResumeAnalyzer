@@ -24,15 +24,16 @@ const fileFilter = (req, file, cb) => {
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/msword',
+    'text/plain',
   ];
   
-  const allowedExtensions = ['.pdf', '.docx', '.doc'];
+  const allowedExtensions = ['.pdf', '.docx', '.doc', '.txt'];
   const ext = path.extname(file.originalname).toLowerCase();
 
   if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF and DOCX files are allowed'), false);
+    cb(new Error('Only PDF, DOCX, DOC, and TXT files are allowed'), false);
   }
 };
 

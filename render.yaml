@@ -19,3 +19,5 @@ services:
         sync: false
       - key: OLLAMA_MODEL
         value: llama3.2
+      - key: OLLAMA_EXTRACT_MODE
+        value: hybrid
