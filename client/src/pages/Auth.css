@@ -1,34 +1,43 @@
 /* ========================================
-   Auth Pages (Login / Signup)
+   Auth Pages (Login / Signup) - NVIDIA Style
    ======================================== */
+
 .auth-page {
   min-height: calc(100vh - 64px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl);
+  padding: 2rem 1.5rem;
   position: relative;
+  overflow: hidden;
 }
 
 .auth-glow {
   position: absolute;
   width: 400px;
   height: 400px;
-  background: var(--accent-primary);
+  background: linear-gradient(135deg, rgba(118, 185, 0, 0.4) 0%, rgba(0, 212, 255, 0.2) 100%);
   border-radius: 50%;
   filter: blur(150px);
-  opacity: 0.1;
+  opacity: 0.15;
   top: 20%;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 0;
 }
 
 .auth-card {
   width: 100%;
   max-width: 440px;
-  padding: var(--space-2xl);
+  padding: 2.5rem;
   position: relative;
   z-index: 1;
+  background: rgba(31, 41, 55, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(248, 248, 248, 0.1);
+  border-radius: 1rem;
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .auth-card:hover {
@@ -37,7 +46,7 @@
 
 .auth-header {
   text-align: center;
-  margin-bottom: var(--space-xl);
+  margin-bottom: 2rem;
 }
 
 .auth-logo {
@@ -46,37 +55,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #76b900 0%, #4a6b00 100%);
+  border-radius: 0.625rem;
   color: white;
-  font-size: 24px;
-  margin: 0 auto var(--space-md);
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin: 0 auto 1rem;
+  box-shadow: 0 0 16px rgba(118, 185, 0, 0.3);
+  box-sizing: border-box;
 }
 
 .auth-title {
-  font-size: var(--font-size-2xl);
+  font-size: 1.75rem;
   font-weight: 800;
+  color: white;
 }
 
 .auth-subtitle {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  margin-top: var(--space-xs);
+  color: #cbd5e1;
+  font-size: 0.9375rem;
+  margin-top: 0.5rem;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 
 .auth-error {
-  padding: var(--space-md);
-  background: rgba(239, 83, 80, 0.1);
-  border: 1px solid rgba(239, 83, 80, 0.2);
-  border-radius: var(--radius-md);
-  color: var(--accent-danger);
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-md);
+  padding: 1rem;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 0.5rem;
+  color: #fca5a5;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
   text-align: center;
 }
 
@@ -86,30 +100,82 @@
 
 .input-icon {
   position: absolute;
-  left: 14px;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-muted);
-  font-size: 16px;
+  color: #94a3b8;
+  font-size: 1rem;
+  pointer-events: none;
 }
 
 .input-with-icon {
-  padding-left: 42px !important;
+  padding-left: 2.75rem !important;
 }
 
 .auth-submit {
   width: 100%;
-  margin-top: var(--space-sm);
+  margin-top: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #76b900 0%, #4a6b00 100%);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 16px rgba(118, 185, 0, 0.3);
+}
+
+.auth-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px rgba(118, 185, 0, 0.5);
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .auth-footer {
   text-align: center;
-  margin-top: var(--space-lg);
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  color: #cbd5e1;
 }
 
 .auth-footer a {
-  color: var(--accent-primary);
+  color: #76b900;
   font-weight: 600;
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+.auth-footer a:hover {
+  color: #00d4ff;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .auth-card {
+    padding: 1.5rem;
+  }
+
+  .auth-logo {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+
+  .auth-title {
+    font-size: 1.5rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.875rem;
+  }
 }

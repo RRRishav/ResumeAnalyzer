@@ -1,0 +1,384 @@
+/* ═══════════════════════════════════════════════════════════════
+   OCR Extract Page — Premium dark glassmorphism
+   ═══════════════════════════════════════════════════════════════ */
+
+.ocr-page {
+  min-height: calc(100vh - 80px);
+  padding: 2.5rem 1rem 4rem;
+}
+
+.ocr-page .container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.ocr-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.ocr-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.ocr-header h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  margin: 0.25rem 0;
+}
+
+.ocr-header p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.95rem;
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.ocr-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(236, 72, 153, 0.18));
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  margin-bottom: 0.75rem;
+  position: relative;
+  animation: ocrPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes ocrPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.15); }
+  50% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
+}
+
+/* ── Upload Card ─────────────────────────────────────────────── */
+.ocr-upload-card {
+  padding: 2.5rem 2rem;
+}
+
+/* ── Dropzone ────────────────────────────────────────────────── */
+.ocr-dropzone {
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.02);
+  position: relative;
+  overflow: hidden;
+}
+
+.ocr-dropzone:hover,
+.ocr-dropzone.drag-over {
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.04);
+}
+
+.ocr-dropzone.has-file {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.ocr-dropzone-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(236, 72, 153, 0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #a78bfa;
+}
+
+.ocr-dropzone h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 0.35rem;
+}
+
+.ocr-dropzone p {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+}
+
+.ocr-file-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 10px;
+  color: #86efac;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.ocr-file-badge button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  transition: color 0.2s;
+}
+
+.ocr-file-badge button:hover {
+  color: #ef4444;
+}
+
+.ocr-submit-btn {
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+/* ── Processing ──────────────────────────────────────────────── */
+.ocr-processing {
+  padding: 2rem;
+  text-align: center;
+}
+
+.ocr-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255, 255, 255, 0.08);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: ocrSpin 0.8s linear infinite;
+  margin: 0 auto 1.25rem;
+}
+
+@keyframes ocrSpin {
+  to { transform: rotate(360deg); }
+}
+
+.ocr-processing h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 0.5rem;
+}
+
+.ocr-processing p {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+}
+
+.ocr-step-list {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ocr-step {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.35);
+  transition: all 0.3s ease;
+}
+
+.ocr-step.active {
+  color: #a78bfa;
+}
+
+.ocr-step.done {
+  color: #86efac;
+}
+
+/* ── Error ────────────────────────────────────────────────────── */
+.ocr-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  color: #fca5a5;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+}
+
+/* ── Results ─────────────────────────────────────────────────── */
+.ocr-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ocr-hero {
+  padding: 2rem;
+}
+
+.ocr-hero h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.ocr-hero > p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.ocr-hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.ocr-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.ocr-meta-chip {
+  padding: 0.45rem 0.9rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ocr-meta-chip span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.ocr-meta-chip strong {
+  font-size: 0.85rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Raw JSON toggle ─────────────────────────────────────────── */
+.ocr-view-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.ocr-view-btn {
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ocr-view-btn.active {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c4b5fd;
+}
+
+.ocr-view-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Raw JSON block ──────────────────────────────────────────── */
+.ocr-raw-json {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1.25rem;
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.ocr-raw-json pre {
+  margin: 0;
+  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ocr-raw-json pre .json-key {
+  color: #c4b5fd;
+}
+
+.ocr-raw-json pre .json-string {
+  color: #86efac;
+}
+
+.ocr-raw-json pre .json-number {
+  color: #93c5fd;
+}
+
+.ocr-raw-json pre .json-null {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Fade animations ─────────────────────────────────────────── */
+.ocr-fade-in {
+  animation: ocrFadeIn 0.5s ease-out both;
+}
+
+.ocr-fade-in.d1 { animation-delay: 0.05s; }
+.ocr-fade-in.d2 { animation-delay: 0.12s; }
+.ocr-fade-in.d3 { animation-delay: 0.2s; }
+.ocr-fade-in.d4 { animation-delay: 0.28s; }
+.ocr-fade-in.d5 { animation-delay: 0.36s; }
+.ocr-fade-in.d6 { animation-delay: 0.44s; }
+.ocr-fade-in.d7 { animation-delay: 0.52s; }
+
+@keyframes ocrFadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .ocr-header h1 { font-size: 1.6rem; }
+  .ocr-upload-card { padding: 1.5rem 1.25rem; }
+  .ocr-dropzone { padding: 1.5rem 1rem; }
+  .ocr-hero { padding: 1.25rem; }
+  .ocr-hero-actions { flex-direction: column; }
+  .ocr-meta-row { flex-direction: column; }
+}

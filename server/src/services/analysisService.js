@@ -1,6 +1,6 @@
 const { parseResume } = require('./parserService');
 const { extractSkills } = require('./tfidfService');
-const { analyzeWithOllama } = require('./ollamaService');
+const { analyzeWithOllama } = require('./groqService');
 
 /**
  * Full analysis pipeline with Socket.io progress events
@@ -44,6 +44,7 @@ async function runAnalysis(filePath, filename, userId, io, socketId) {
       weaknesses: analysisResult.weaknesses || [],
       suggestions: analysisResult.suggestions || [],
       career_recommendations: analysisResult.career_recommendations || [],
+      job_title_match: analysisResult.job_title_match || analysisResult.career_recommendations?.[0]?.role || '',
       gemini_insights: analysisResult.summary || '',
       missing_skills: analysisResult.missing_skills || [],
       keywords_to_add: analysisResult.keywords_to_add || [],

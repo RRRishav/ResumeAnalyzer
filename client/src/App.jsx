@@ -13,10 +13,13 @@ import Dashboard from './pages/Dashboard';
 import Analyzer from './pages/Analyzer';
 import History from './pages/History';
 import ReportDetail from './pages/ReportDetail';
+import DatasetReportDetail from './pages/DatasetReportDetail';
 import Pricing from './pages/Pricing';
 import ExtractInfo from './pages/ExtractInfo';
 import ExtractHistory from './pages/ExtractHistory';
 import ExtractDetail from './pages/ExtractDetail';
+import DriveExtract from './pages/DriveExtract';
+import OcrExtract from './pages/OcrExtract';
 
 function App() {
   return (
@@ -38,8 +41,11 @@ function App() {
                 <Route path="/extract" element={<ProtectedRoute><ExtractInfo /></ProtectedRoute>} />
                 <Route path="/extract-history" element={<ProtectedRoute><ExtractHistory /></ProtectedRoute>} />
                 <Route path="/extract-detail/:id" element={<ProtectedRoute><ExtractDetail /></ProtectedRoute>} />
+                <Route path="/drive-extract" element={<ProtectedRoute><DriveExtract /></ProtectedRoute>} />
+                <Route path="/ocr-extract" element={<OcrExtract />} />
                 <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
                 <Route path="/report/:id" element={<ProtectedRoute><ReportDetail /></ProtectedRoute>} />
+                <Route path="/dataset-report/:id" element={<ProtectedRoute><DatasetReportDetail /></ProtectedRoute>} />
               </Routes>
             </main>
             <Footer />

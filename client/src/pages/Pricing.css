@@ -1,45 +1,73 @@
+/* ========================================
+   Pricing Page - NVIDIA Style
+   ======================================== */
+
 .pricing {
-  padding: var(--space-3xl) 0 var(--space-4xl);
+  padding: 5rem 2rem 4rem;
+  min-height: calc(100vh - 200px);
 }
 
 .pricing-header {
   text-align: center;
-  margin-bottom: var(--space-3xl);
+  margin-bottom: 3.5rem;
+  animation: fadeInDown 0.6s ease-out;
 }
 
 .pricing-header h1 {
-  font-size: var(--font-size-3xl);
+  font-size: 2.75rem;
   font-weight: 800;
+  color: white;
+  margin-bottom: 1rem;
 }
 
 .pricing-header p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-lg);
-  margin-top: var(--space-sm);
+  color: #cbd5e1;
+  font-size: 1.0625rem;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-lg);
-  max-width: 1000px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
 .pricing-card {
-  padding: var(--space-xl);
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   position: relative;
+  background: rgba(31, 41, 55, 0.6);
+  border: 1px solid rgba(248, 248, 248, 0.1);
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+  animation: fadeInUp 0.6s ease-out backwards;
 }
 
+.pricing-card:nth-child(1) { animation-delay: 0.1s; }
+.pricing-card:nth-child(2) { animation-delay: 0.2s; }
+.pricing-card:nth-child(3) { animation-delay: 0.3s; }
+
 .pricing-card:hover {
-  transform: translateY(-4px);
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(118, 185, 0, 0.3);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(118, 185, 0, 0.15);
 }
 
 .pricing-card-popular {
-  border-color: var(--accent-primary) !important;
-  box-shadow: var(--shadow-glow-accent);
+  border-color: #76b900 !important;
+  background: rgba(118, 185, 0, 0.08) !important;
+  box-shadow: 0 0 32px rgba(118, 185, 0, 0.3);
+  transform: scale(1.05);
+}
+
+.pricing-card-popular:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 20px 50px rgba(118, 185, 0, 0.4);
 }
 
 .pricing-popular-badge {
@@ -49,33 +77,175 @@
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 16px;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #76b900 0%, #4a6b00 100%);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: white;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 12px rgba(118, 185, 0, 0.4);
 }
 
 .pricing-plan-name {
-  font-size: var(--font-size-lg);
+  font-size: 1.25rem;
   font-weight: 700;
-  margin-bottom: var(--space-md);
+  color: white;
+  margin-bottom: 1rem;
 }
 
 .pricing-price {
-  margin-bottom: var(--space-xl);
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(248, 248, 248, 0.1);
 }
 
 .pricing-amount {
-  font-size: var(--font-size-4xl);
+  font-size: 2.5rem;
   font-weight: 900;
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #76b900 0%, #4a6b00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.pricing-amount-span {
+  font-size: 1rem;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.pricing-desc {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin-bottom: 2rem;
+}
+
+.pricing-features {
+  list-style: none;
+  margin-bottom: 2rem;
+  flex: 1;
+}
+
+.pricing-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.9375rem;
+  color: #cbd5e1;
+}
+
+.pricing-feature-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(118, 185, 0, 0.15);
+  border-radius: 50%;
+  color: #76b900;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+}
+
+.pricing-feature.disabled {
+  opacity: 0.5;
+}
+
+.pricing-feature.disabled .pricing-feature-icon {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+}
+
+.pricing-cta {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #76b900 0%, #4a6b00 100%);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 16px rgba(118, 185, 0, 0.3);
+}
+
+.pricing-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px rgba(118, 185, 0, 0.5);
+}
+
+.pricing-cta-secondary {
+  background: transparent;
+  border: 1.5px solid rgba(118, 185, 0, 0.5);
+  color: #76b900;
+}
+
+.pricing-cta-secondary:hover:not(:disabled) {
+  background: rgba(118, 185, 0, 0.1);
+  border-color: #76b900;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .pricing-card-popular {
+    transform: scale(1.02);
+  }
+
+  .pricing-card-popular:hover {
+    transform: translateY(-8px) scale(1.02);
+  }
+}
+
+@media (max-width: 768px) {
+  .pricing {
+    padding: 3rem 1.5rem;
+  }
+
+  .pricing-header h1 {
+    font-size: 2rem;
+  }
+
+  .pricing-header p {
+    font-size: 0.9375rem;
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .pricing-card-popular {
+    transform: scale(1);
+  }
+
+  .pricing-card-popular:hover {
+    transform: translateY(-8px);
+  }
+}
+
+@media (max-width: 480px) {
+  .pricing {
+    padding: 2rem 1rem;
+  }
+
+  .pricing-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .pricing-card {
+    padding: 1.5rem;
+  }
+
+  .pricing-amount {
+    font-size: 2rem;
+  }
 }
 
 .pricing-period {

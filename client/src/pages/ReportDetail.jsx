@@ -4,6 +4,7 @@ import api from '../services/api';
 import ScoreGauge from '../components/ScoreGauge';
 import SkillChart from '../components/SkillChart';
 import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrendingUp, FiStar, FiCalendar, FiFileText } from 'react-icons/fi';
+import './ReportDetail.css';
 
 export default function ReportDetail() {
   const { id } = useParams();

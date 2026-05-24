@@ -6,39 +6,38 @@ import {
   FiAward,
   FiBookOpen,
   FiBriefcase,
-  FiCpu,
+  FiCheckCircle,
+  FiCloud,
+  FiCode,
   FiDatabase,
   FiExternalLink,
+  FiFileText,
   FiGithub,
+  FiGlobe,
+  FiInfo,
+  FiLink,
   FiLinkedin,
   FiMail,
   FiMapPin,
   FiPhone,
   FiRefreshCcw,
   FiSend,
-  FiStar,
-  FiTool,
-  FiUser,
-  FiCheckCircle,
-  FiClock,
-  FiFileText,
-  FiGlobe,
-  FiArrowRight,
-  FiCode,
-  FiLink,
-  FiCloud,
   FiServer,
+  FiTool,
   FiTrendingUp,
+  FiUser,
+  FiArrowRight,
+  FiClock,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import api from '../services/api';
-import FileUpload from '../components/FileUpload';
 import ProgressBar from '../components/ProgressBar';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import './ExtractInfo.css';
+import './DriveExtract.css';
+import './ExtractInfo.css'; // reuse extract result section styles
 
 const PRODUCTION_SOCKET_URL = 'https://resume-analyzer-api-12if.onrender.com';
 
@@ -49,18 +48,22 @@ const getSocketURL = () => {
   return import.meta.env.VITE_SOCKET_URL || PRODUCTION_SOCKET_URL;
 };
 
-export default function ExtractInfo() {
+// Validate Google Drive URL patterns
+const DRIVE_URL_REGEX = /drive\.google\.com\/(file\/d\/|open\?id=|uc\?)|docs\.google\.com\/(document|spreadsheets)\/d\//i;
+
+export default function DriveExtract() {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const [file, setFile] = useState(null);
+  const [driveLink, setDriveLink] = useState('');
+  const [linkValid, setLinkValid] = useState(null); // null | true | false
   const [extracting, setExtracting] = useState(false);
   const [progress, setProgress] = useState({ stage: '', progress: 0, message: '' });
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [llmStatus, setLlmStatus] = useState('checking'); // 'checking' | 'online' | 'offline'
+  const [llmStatus, setLlmStatus] = useState('checking');
   const [llmModel, setLlmModel] = useState('');
-  const [llmProvider, setLlmProvider] = useState(''); // 'Ollama (Local)' | 'Groq Cloud (Llama)'
+  const [llmProvider, setLlmProvider] = useState('');
   const socketRef = useRef(null);
 
   // Check LLM health on mount
@@ -94,43 +97,49 @@ export default function ExtractInfo() {
         setLlmStatus('online');
         setLlmModel(res.data.model || '');
         setLlmProvider(res.data.provider || '');
-        toast.success(`LLM connected ” ${res.data.provider || 'Ready'}`, 3000);
       } else {
         setLlmStatus('offline');
-        toast.warning('No LLM provider available. Check Ollama .', 5000);
       }
     } catch {
       setLlmStatus('offline');
-      toast.error('Could not reach LLM health endpoint', 4000);
+    }
+  };
+
+  const handleLinkChange = (e) => {
+    const val = e.target.value;
+    setDriveLink(val);
+    setError('');
+    if (!val.trim()) {
+      setLinkValid(null);
+    } else if (DRIVE_URL_REGEX.test(val)) {
+      setLinkValid(true);
+    } else {
+      setLinkValid(false);
     }
   };
 
   const handleExtract = async () => {
-    if (!file) return;
+    if (!driveLink.trim() || linkValid === false) return;
     setError('');
     setResult(null);
     setExtracting(true);
-    setProgress({ stage: 'parsing', progress: 5, message: 'Starting extraction...' });
-    toast.info('Extraction started â€” processing your resume...', 3000);
+    setProgress({ stage: 'downloading', progress: 3, message: 'Starting extraction from Drive...' });
+    toast.info('Downloading resume from Google Drive...', 3000);
 
     try {
-      const formData = new FormData();
-      formData.append('resume', file);
-
-      const res = await api.post('/extract/upload', formData, {
+      const res = await api.post('/extract/drive', { driveLink: driveLink.trim() }, {
         headers: {
-          'Content-Type': 'multipart/form-data',
           'x-socket-id': socketRef.current?.id || '',
         },
-        timeout: 180000, // 3 min timeout for local LLM
+        timeout: 180000,
       });
 
       setResult(res.data.extraction);
       setProgress({ stage: 'complete', progress: 100, message: 'Extraction complete!' });
       refreshUser();
-      toast.success(`Extraction complete via ${res.data.extraction?.provider_used || 'AI'} â€” ${res.data.extraction?.model_used || ''}`, 5000);
+      toast.success(`Extraction complete via ${res.data.extraction?.provider_used || 'AI'}`, 5000);
     } catch (err) {
-      const msg = err.response?.data?.error || 'Extraction failed. Make sure an LLM provider is available.';
+      const msg = err.response?.data?.error || 'Drive extraction failed. Make sure the link is publicly shared.';
       setError(msg);
       setProgress({ stage: '', progress: 0, message: '' });
       toast.error(msg, 6000);
@@ -140,7 +149,8 @@ export default function ExtractInfo() {
   };
 
   const handleReset = () => {
-    setFile(null);
+    setDriveLink('');
+    setLinkValid(null);
     setResult(null);
     setError('');
     setProgress({ stage: '', progress: 0, message: '' });
@@ -162,12 +172,11 @@ export default function ExtractInfo() {
     && !data.links?.github && !data.links?.linkedin && !data.links?.portfolio;
 
   const formatTime = (ms) => {
-    if (!ms) return 'â€”';
+    if (!ms) return '—';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
-  // Determine provider icon and label
   const isCloud = llmProvider?.toLowerCase().includes('groq') || llmProvider?.toLowerCase().includes('cloud');
   const providerIcon = isCloud ? <FiCloud size={13} /> : <FiServer size={13} />;
   const providerLabel = llmProvider || (isCloud ? 'Groq Cloud' : 'Ollama Local');
@@ -179,34 +188,69 @@ export default function ExtractInfo() {
     : (result?.provider_used === 'groq' ? 'Groq' : 'Ollama');
 
   return (
-    <div className="extract-page">
+    <div className="drive-extract-page">
       <div className="container">
         {/* Header */}
-        <div className="extract-header animate-fade-in-up">
-          <div className="extract-header-row">
-            <Badge variant="default"><FiDatabase /> AI Extract</Badge>
+        <div className="drive-header animate-fade-in-up">
+          <div className="drive-header-row">
+            <Badge variant="default"><FiLink /> Drive Extract</Badge>
             <div className={`ollama-status ${llmStatus}`}>
               <span className="ollama-status-dot" />
               {llmStatus === 'checking' && 'Checking LLM...'}
               {llmStatus === 'online' && (
                 <span className="flex items-center gap-1.5">
-                  {providerIcon} {providerLabel}{llmModel ? ` Â· ${llmModel}` : ''}
+                  {providerIcon} {providerLabel}{llmModel ? ` · ${llmModel}` : ''}
                 </span>
               )}
               {llmStatus === 'offline' && 'LLM Offline'}
             </div>
           </div>
-          <h1>Extract <span className="text-gradient">Resume Info</span></h1>
-          <p>Upload your resume and let AI extract structured data .</p>
+          <div className="drive-icon-pulse">
+            <FiExternalLink size={22} style={{ color: '#06b6d4' }} />
+          </div>
+          <h1>Extract from <span className="text-gradient">Google Drive</span></h1>
+          <p>Paste a public Google Drive link to your resume and let AI extract all the important details instantly.</p>
         </div>
 
-        {/* Upload / Results */}
+        {/* Input / Results */}
         {!result ? (
-          <Card className="extract-upload-section animate-fade-in-up stagger-1">
-            <FileUpload file={file} onFileSelect={setFile} onClear={() => setFile(null)} />
+          <Card className="drive-input-section animate-fade-in-up stagger-1">
+            {/* Drive Link Input */}
+            <div className="drive-input-wrapper">
+              <FiLink className="drive-input-icon" size={16} />
+              <input
+                type="url"
+                className={`drive-link-input ${linkValid === true ? 'valid' : ''} ${linkValid === false ? 'invalid' : ''}`}
+                placeholder="https://drive.google.com/file/d/... or paste any Drive share link"
+                value={driveLink}
+                onChange={handleLinkChange}
+                disabled={extracting}
+                onKeyDown={(e) => e.key === 'Enter' && handleExtract()}
+                autoFocus
+              />
+            </div>
+
+            {linkValid === false && driveLink.trim() && (
+              <div className="drive-validation-msg error">
+                <FiAlertTriangle size={13} /> This doesn't look like a valid Google Drive link
+              </div>
+            )}
+            {linkValid === true && (
+              <div className="drive-validation-msg success">
+                <FiCheckCircle size={13} /> Valid Google Drive link detected
+              </div>
+            )}
+
+            <div className="drive-input-hint">
+              <FiInfo size={14} />
+              <span>
+                The file must be <strong>publicly shared</strong> (Anyone with the link can view).
+                Supported formats: PDF, DOCX, TXT.
+              </span>
+            </div>
 
             {error && (
-              <div className="extract-error animate-fade-in">
+              <div className="drive-error animate-fade-in">
                 <FiAlertTriangle /> {error}
               </div>
             )}
@@ -216,18 +260,18 @@ export default function ExtractInfo() {
             ) : (
               <Button
                 size="lg"
-                className="extract-submit"
+                className="drive-submit"
                 onClick={handleExtract}
-                disabled={!file || extracting || llmStatus === 'offline'}
+                disabled={!driveLink.trim() || linkValid === false || extracting || llmStatus === 'offline'}
               >
-                <FiSend /> Extract Resume
+                <FiSend /> Extract from Drive
               </Button>
             )}
 
             {llmStatus === 'offline' && (
-              <div className="extract-error" style={{ marginTop: '0.75rem' }}>
+              <div className="drive-error" style={{ marginTop: '0.75rem' }}>
                 <FiAlertTriangle />
-                LLM service is unavailable. The server may still be starting up â€” please retry in a moment.
+                LLM service is unavailable. The server may still be starting up — please retry in a moment.
                 <Button size="sm" variant="outline" onClick={checkLLM} style={{ marginLeft: 'auto' }}>
                   <FiRefreshCcw size={14} /> Retry
                 </Button>
@@ -237,11 +281,11 @@ export default function ExtractInfo() {
         ) : (
           <div className="extract-results">
             {/* Result Hero */}
-            <Card className="extract-result-hero extract-fade-in d1">
+            <Card className="extract-result-hero drive-fade-in d1">
               <div>
                 <Badge variant="success"><FiCheckCircle /> Extraction Complete</Badge>
                 <h2>{data.name || result.filename}</h2>
-                <p>Extracted from {result.filename} using <strong>{resultProviderLabel}</strong> · {result.model_used}</p>
+                <p>Extracted from Google Drive using <strong>{resultProviderLabel}</strong> · {result.model_used}</p>
                 <div className="extract-result-actions">
                   <Button onClick={handleReset}><FiRefreshCcw /> Extract Another</Button>
                   <Button variant="outline" onClick={() => navigate(`/extract-detail/${result.id}`)}>
@@ -276,9 +320,9 @@ export default function ExtractInfo() {
               </div>
             </Card>
 
-            {/* Sections Grid */}
+            {/* Sections Grid — reuses ExtractInfo.css classes */}
             <div className="extract-grid">
-              <Card className="extract-section summary-section extract-grid-full extract-fade-in d2">
+              <Card className="extract-section summary-section extract-grid-full drive-fade-in d2">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiFileText /></div>
                   Professional Summary
@@ -291,7 +335,7 @@ export default function ExtractInfo() {
               </Card>
 
               {/* Personal Info */}
-              <Card className="extract-section personal extract-fade-in d2">
+              <Card className="extract-section personal drive-fade-in d2">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiUser /></div>
                   Personal Information
@@ -370,7 +414,7 @@ export default function ExtractInfo() {
               </Card>
 
               {/* Education */}
-              <Card className="extract-section education extract-fade-in d3">
+              <Card className="extract-section education drive-fade-in d3">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiBookOpen /></div>
                   Education
@@ -427,7 +471,7 @@ export default function ExtractInfo() {
               </Card>
 
               {/* Skills */}
-              <Card className="extract-section skills-section extract-fade-in d4">
+              <Card className="extract-section skills-section drive-fade-in d4">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiTool /></div>
                   Skills
@@ -447,7 +491,7 @@ export default function ExtractInfo() {
               </Card>
 
               {/* Certifications */}
-              <Card className="extract-section certs-section extract-fade-in d5">
+              <Card className="extract-section certs-section drive-fade-in d5">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiAward /></div>
                   Certifications
@@ -460,7 +504,7 @@ export default function ExtractInfo() {
                         <div className="extract-cert-name">{cert.name}</div>
                         <div className="extract-cert-meta">
                           {cert.issuer && <span>{cert.issuer}</span>}
-                          {cert.issuer && cert.year && <span> Â· </span>}
+                          {cert.issuer && cert.year && <span> · </span>}
                           {cert.year && <span>{cert.year}</span>}
                         </div>
                       </div>
@@ -471,7 +515,7 @@ export default function ExtractInfo() {
                 )}
               </Card>
 
-              <Card className="extract-section achievements-section extract-fade-in d6">
+              <Card className="extract-section achievements-section drive-fade-in d6">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiTrendingUp /></div>
                   Achievements
@@ -485,7 +529,7 @@ export default function ExtractInfo() {
                 )}
               </Card>
 
-              <Card className="extract-section languages-section extract-fade-in d6">
+              <Card className="extract-section languages-section drive-fade-in d6">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiGlobe /></div>
                   Languages
@@ -502,7 +546,7 @@ export default function ExtractInfo() {
               </Card>
 
               {/* Projects */}
-              <Card className="extract-section projects-section extract-grid-full extract-fade-in d6">
+              <Card className="extract-section projects-section extract-grid-full drive-fade-in d6">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiCode /></div>
                   Projects
@@ -532,7 +576,7 @@ export default function ExtractInfo() {
               </Card>
 
               {/* Experience */}
-              <Card className="extract-section experience-section extract-grid-full extract-fade-in d7">
+              <Card className="extract-section experience-section extract-grid-full drive-fade-in d7">
                 <div className="extract-section-title">
                   <div className="extract-section-icon"><FiBriefcase /></div>
                   Work Experience
@@ -562,4 +606,3 @@ export default function ExtractInfo() {
     </div>
   );
 }
-

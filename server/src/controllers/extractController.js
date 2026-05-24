@@ -1,6 +1,6 @@
 const Extraction = require('../models/Extraction');
 const { parseResume } = require('../services/parserService');
-const { extractResumeData, checkOllamaHealth } = require('../services/ollamaService');
+const { extractResumeData, checkOllamaHealth } = require('../services/groqService');
 const fs = require('fs');
 const mongoose = require('mongoose');
 
@@ -174,6 +174,109 @@ exports.getReport = async (req, res) => {
   }
 };
 
+// POST /api/extract/drive
+exports.uploadFromDrive = async (req, res) => {
+  const { downloadFromDrive } = require('../services/driveService');
+
+  try {
+    const { driveLink } = req.body;
+    if (!driveLink || typeof driveLink !== 'string') {
+      return res.status(400).json({ error: 'Please provide a Google Drive link' });
+    }
+
+    const socketId = req.headers['x-socket-id'] || null;
+    const io = req.app.get('io');
+
+    const emit = (stage, progress, message) => {
+      if (io && socketId) {
+        io.to(socketId).emit('extract_progress', { stage, progress, message });
+      }
+    };
+
+    try {
+      // Stage 1: Download from Google Drive
+      emit('downloading', 5, 'Downloading resume from Google Drive...');
+      const { filePath, originalName } = await downloadFromDrive(driveLink);
+      emit('downloading', 20, `Downloaded ${originalName} from Drive`);
+
+      // Stage 2: Parse the document
+      emit('parsing', 25, 'Reading your resume...');
+      const { text, wordCount, fileType } = await parseResume(filePath);
+      emit('parsing', 35, `Extracted ${wordCount} words from ${fileType.toUpperCase()}`);
+
+      // Stage 3: Send to LLM for extraction
+      const providerLabel = process.env.NODE_ENV === 'production' ? 'Groq Cloud' : 'AI';
+      emit('extracting', 40, `Sending to ${providerLabel} for extraction...`);
+      const extracted = await extractResumeData(text);
+      const completedProvider = extracted.provider_used === 'local-fast'
+        ? 'Local parser'
+        : (extracted.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama');
+      emit('extracting', 75, `${completedProvider} extraction complete, processing results...`);
+
+      // Stage 4: Save to DB
+      emit('processing', 85, 'Saving extraction results...');
+
+      const dbResult = await Extraction.create({
+        user_id: req.user.id,
+        filename: originalName,
+        file_type: fileType,
+        extracted_data: {
+          name: extracted.name,
+          phone: extracted.phone,
+          email: extracted.email,
+          location: extracted.location,
+          professional_summary: extracted.professional_summary,
+          total_experience: extracted.total_experience,
+          links: extracted.links,
+          tenth_marks: extracted.tenth_marks,
+          twelfth_marks: extracted.twelfth_marks,
+          degree: extracted.degree,
+          stream: extracted.stream,
+          cgpa: extracted.cgpa,
+          education: extracted.education,
+          projects: extracted.projects,
+          skills: extracted.skills,
+          certifications: extracted.certifications,
+          achievements: extracted.achievements,
+          languages: extracted.languages,
+          experience: extracted.experience,
+        },
+        model_used: extracted.model_used,
+        provider_used: extracted.provider_used || 'unknown',
+        processing_time_ms: extracted.processing_time_ms,
+        raw_text: text,
+        word_count: wordCount,
+      });
+
+      emit('complete', 100, 'Extraction complete!');
+
+      // Clean up downloaded file
+      try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+
+      res.status(201).json({
+        message: 'Extraction complete',
+        extraction: {
+          id: dbResult._id.toString(),
+          filename: dbResult.filename,
+          file_type: dbResult.file_type,
+          extracted_data: dbResult.extracted_data,
+          model_used: dbResult.model_used,
+          provider_used: dbResult.provider_used || 'unknown',
+          processing_time_ms: dbResult.processing_time_ms,
+          word_count: dbResult.word_count,
+          created_at: dbResult.created_at,
+        },
+      });
+    } catch (extractError) {
+      emit('error', 0, extractError.message);
+      throw extractError;
+    }
+  } catch (error) {
+    console.error('Drive extraction error:', error);
+    res.status(500).json({ error: error.message || 'Drive extraction failed' });
+  }
+};
+
 // GET /api/extract/health
 exports.health = async (req, res) => {
   try {
@@ -181,5 +284,74 @@ exports.health = async (req, res) => {
     res.json(status);
   } catch (error) {
     res.status(500).json({ healthy: false, error: error.message });
+  }
+};
+
+// POST /api/extract/ocr — OCR-style extraction using Groq
+exports.ocrExtract = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Please upload a resume file (PDF, DOCX, or TXT)' });
+    }
+
+    const startTime = Date.now();
+
+    try {
+      // Step 1: Parse the document to extract text
+      const { text, wordCount, fileType } = await parseResume(req.file.path);
+
+      if (!text || text.trim().length < 20) {
+        throw new Error('Could not extract readable text from this file. It may be a scanned image — try a text-based PDF or DOCX.');
+      }
+
+      // Step 2: Send to Groq for structured extraction
+      const extracted = await extractResumeData(text);
+
+      const processingTime = Date.now() - startTime;
+
+      // Clean up uploaded file
+      try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+
+      res.json({
+        success: true,
+        extraction: {
+          extracted_data: {
+            name: extracted.name || null,
+            email: extracted.email || null,
+            phone: extracted.phone || null,
+            location: extracted.location || null,
+            professional_summary: extracted.professional_summary || null,
+            total_experience: extracted.total_experience || null,
+            links: extracted.links || { github: null, linkedin: null, portfolio: null, other: [] },
+            degree: extracted.degree || null,
+            stream: extracted.stream || null,
+            cgpa: extracted.cgpa || null,
+            tenth_marks: extracted.tenth_marks || null,
+            twelfth_marks: extracted.twelfth_marks || null,
+            education: extracted.education || [],
+            skills: extracted.skills || [],
+            projects: extracted.projects || [],
+            certifications: extracted.certifications || [],
+            experience: extracted.experience || [],
+            achievements: extracted.achievements || [],
+            languages: extracted.languages || [],
+          },
+          filename: req.file.originalname,
+          processing_time_ms: processingTime,
+          model_used: extracted.model_used || 'llama-3.3-70b-versatile',
+          provider_used: extracted.provider_used || 'groq',
+          pages_processed: 1,
+          method: 'groq_text_extraction',
+          word_count: wordCount,
+        },
+      });
+    } catch (extractError) {
+      // Clean up file on error
+      try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+      throw extractError;
+    }
+  } catch (error) {
+    console.error('OCR extraction error:', error);
+    res.status(500).json({ error: error.message || 'Extraction failed' });
   }
 };

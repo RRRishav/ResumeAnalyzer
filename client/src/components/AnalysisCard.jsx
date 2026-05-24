@@ -4,7 +4,21 @@ import ScoreGauge from './ScoreGauge';
 
 export default function AnalysisCard({ analysis }) {
   const navigate = useNavigate();
-  const skills = typeof analysis.skills === 'string' ? JSON.parse(analysis.skills) : (analysis.skills || []);
+  const skillLabel = (skill) => (
+    typeof skill === 'string'
+      ? skill
+      : skill?.name || skill?.skill || skill?.title || skill?.value || 'Skill'
+  );
+
+  const skills = typeof analysis.skills === 'string'
+    ? (() => {
+        try {
+          return JSON.parse(analysis.skills);
+        } catch {
+          return analysis.skills.split(';').map((name) => ({ name: name.trim() })).filter((skill) => skill.name);
+        }
+      })()
+    : (analysis.skills || []);
   const topSkills = Array.isArray(skills) ? skills.slice(0, 4) : [];
 
   const formatDate = (dateStr) => {
@@ -16,7 +30,14 @@ export default function AnalysisCard({ analysis }) {
   return (
     <div
       className="analysis-card group cursor-pointer"
-      onClick={() => navigate(`/report/${analysis.id}`)}
+      onClick={() => {
+        if (analysis.source === 'dataset') {
+          navigate(`/dataset-report/${encodeURIComponent(analysis.dataset_id || analysis.id)}`);
+          return;
+        }
+
+        navigate(`/report/${analysis.id}`);
+      }}
       id={`analysis-${analysis.id}`}
     >
       {/* Hover gradient overlay */}
@@ -34,7 +55,7 @@ export default function AnalysisCard({ analysis }) {
             </h4>
             <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1.5">
               <FiCalendar size={11} />
-              <span>{formatDate(analysis.created_at)}</span>
+              <span>{analysis.source === 'dataset' ? (analysis.role || 'Dataset resume') : formatDate(analysis.created_at)}</span>
             </div>
           </div>
         </div>
@@ -51,7 +72,7 @@ export default function AnalysisCard({ analysis }) {
             key={i}
             className="analysis-skill-tag"
           >
-            {typeof skill === 'string' ? skill : skill.name}
+            {skillLabel(skill)}
           </span>
         ))}
         {skills.length > 4 && (

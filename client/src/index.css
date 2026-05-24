@@ -2363,7 +2363,7 @@ footer {
    ═══════════════════════════════════════════════════════ */
 
 .score-gauge-ring {
-  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.25));
+  filter: none;
 }
 
 .result-score-card:hover {
@@ -2966,11 +2966,11 @@ footer {
    ═══════════════════════════════════════════════════════ */
 
 .score-gauge-container {
-  transition: transform 0.3s ease;
+  transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
 .score-gauge-container:hover {
-  transform: scale(1.05);
+  transform: translateY(-1px);
 }
 
 /* Smooth scroll behavior on main content */

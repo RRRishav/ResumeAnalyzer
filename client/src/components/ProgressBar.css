@@ -1,16 +1,20 @@
+/* ========================================
+   Progress Bar - NVIDIA Style
+   ======================================== */
+
 .progress-container {
   width: 100%;
-  padding: var(--space-xl);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  background: rgba(31, 41, 55, 0.6);
+  border: 1px solid rgba(248, 248, 248, 0.1);
+  border-radius: 1rem;
 }
 
 .progress-stages {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-xl);
+  margin-bottom: 1.5rem;
   position: relative;
 }
 
@@ -18,109 +22,125 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 0.75rem;
   flex: 1;
   position: relative;
   z-index: 1;
 }
 
 .progress-stage-icon {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--border-subtle);
-  color: var(--text-muted);
-  transition: all var(--transition-base);
+  background: rgba(31, 41, 55, 0.8);
+  border: 2px solid rgba(248, 248, 248, 0.1);
+  color: #94a3b8;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 0.875rem;
 }
 
 .progress-stage.active .progress-stage-icon {
-  background: rgba(108, 99, 255, 0.15);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  box-shadow: 0 0 15px rgba(108, 99, 255, 0.3);
+  background: rgba(118, 185, 0, 0.15);
+  border-color: #76b900;
+  color: #76b900;
+  box-shadow: 0 0 16px rgba(118, 185, 0, 0.4);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 .progress-stage.complete .progress-stage-icon {
-  background: var(--accent-secondary);
-  border-color: var(--accent-secondary);
+  background: linear-gradient(135deg, #76b900 0%, #4a6b00 100%);
+  border-color: #76b900;
   color: white;
 }
 
 .progress-stage-label {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  font-size: 0.75rem;
+  color: #94a3b8;
   font-weight: 500;
   text-align: center;
 }
 
 .progress-stage.active .progress-stage-label,
 .progress-stage.complete .progress-stage-label {
-  color: var(--text-primary);
+  color: white;
 }
 
 .progress-stage-line {
   position: absolute;
-  top: 20px;
+  top: 22px;
   left: 60%;
   right: -40%;
   height: 2px;
-  background: var(--border-subtle);
+  background: rgba(248, 248, 248, 0.1);
   z-index: 0;
 }
 
 .progress-stage-line.filled {
-  background: var(--accent-secondary);
+  background: linear-gradient(90deg, #76b900 0%, #4a6b00 100%);
+  box-shadow: 0 0 12px rgba(118, 185, 0, 0.3);
 }
 
 .progress-bar-track {
   width: 100%;
-  height: 6px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-full);
+  height: 8px;
+  background: rgba(248, 248, 248, 0.1);
+  border-radius: 9999px;
   overflow: hidden;
-  margin-bottom: var(--space-md);
+  margin-bottom: 1rem;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-full);
-  transition: width 0.4s ease;
+  background: linear-gradient(90deg, #76b900 0%, #4a6b00 100%);
+  border-radius: 9999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  box-shadow: 0 0 16px rgba(118, 185, 0, 0.4);
 }
 
 .progress-bar-glow {
   position: absolute;
   right: 0;
   top: -2px;
-  width: 20px;
-  height: 10px;
+  width: 24px;
+  height: 12px;
   background: white;
   border-radius: 50%;
   filter: blur(4px);
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .progress-message {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  font-size: 0.875rem;
+  color: #cbd5e1;
   text-align: center;
-  margin-bottom: var(--space-xs);
+  margin-bottom: 0.5rem;
 }
 
 .progress-percent {
-  font-size: var(--font-size-lg);
+  font-size: 1.125rem;
   font-weight: 700;
-  color: var(--accent-primary);
+  color: #76b900;
   text-align: center;
 }
 
 @media (max-width: 600px) {
-  .progress-stage-label { display: none; }
-  .progress-stage-line { left: 55%; right: -45%; }
+  .progress-stage-label {
+    display: none;
+  }
+
+  .progress-stage-line {
+    left: 55%;
+    right: -45%;
+  }
+
+  .progress-stage-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 0.75rem;
+  }
 }
