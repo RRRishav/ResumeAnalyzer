@@ -37,7 +37,15 @@ from openpyxl.utils import get_column_letter
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  CONFIG
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-GROQ_API_KEY = "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"
+# Load environment variables from .env or server/.env if available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    load_dotenv(os.path.join(os.path.dirname(__file__), "server", ".env"))
+except ImportError:
+    pass
+
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 DEFAULT_FOLDER = os.path.join(os.path.dirname(__file__), "server", "uploads")
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
