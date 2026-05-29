@@ -382,3 +382,36 @@
   .ocr-hero-actions { flex-direction: column; }
   .ocr-meta-row { flex-direction: column; }
 }
+
+/* Suggested Roles section styling */
+.roles-section {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.03), rgba(0, 0, 0, 0));
+  border-left: 3px solid rgba(16, 185, 129, 0.4);
+}
+
+.suggested-roles-intro {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: -0.25rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.extract-skills-grid .role-tag {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #a7f3d0;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s;
+}
+
+.extract-skills-grid .role-tag:hover {
+  background: rgba(16, 185, 129, 0.18);
+  transform: translateY(-1px);
+}

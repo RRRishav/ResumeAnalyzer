@@ -288,6 +288,28 @@ export default function OcrExtract() {
                   )}
                 </Card>
 
+                {/* Suggested Roles */}
+                <Card className="extract-section roles-section extract-grid-full ocr-fade-in d2">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiTrendingUp style={{ color: '#10b981' }} /></div>
+                    Suggested Roles / Career Matches
+                  </div>
+                  {data.suggested_roles?.length > 0 ? (
+                    <div className="suggested-roles-container">
+                      <p className="suggested-roles-intro">Based on your skills, experience, and projects, our AI suggests that you are a strong fit for the following target roles:</p>
+                      <div className="extract-skills-grid">
+                        {data.suggested_roles.map((role, i) => (
+                          <span key={i} className="extract-skill-tag role-tag">
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="extract-empty">No role recommendations available</div>
+                  )}
+                </Card>
+
                 {/* Personal Info */}
                 <Card className="extract-section personal ocr-fade-in d2">
                   <div className="extract-section-title">

@@ -68,13 +68,14 @@ RULES:
 - Extract ONLY the fields in the schema below
 - If a field is not found, use null (strings) or [] (arrays)
 - Never return placeholder text, angle-bracket examples, or [object Object]
-- Do NOT include school names, college names, university names, city names, addresses, or locations
+- Do NOT include city names, addresses, or locations (but DO include school, college, and university names in the education section)
 - Do NOT include date of birth, gender, nationality, marital status, or father's name
 - Phone numbers should include country code if present
 - For projects: extract title, 1-line description, and technologies used
 - For skills: list individual skill names as simple strings
 - For certifications: include cert name, issuing organization, and year
 - For experience: include role, company, duration, and brief description
+- For suggested_roles: analyze the candidate's skills, experience, and projects, and list 2-4 target job roles they are best fit for.
 
 Return this exact JSON structure:
 {
@@ -95,13 +96,14 @@ Return this exact JSON structure:
   "degree": "<degree name like B.Tech, BCA, MCA, etc. or null>",
   "stream": "<stream/branch like CSE, IT, ECE, etc. or null>",
   "cgpa": "<college CGPA or percentage or null>",
-  "education": [],
+  "education": [{"degree": "<degree or null>", "institution": "<college/school/university name or null>", "stream": "<stream/branch or null>", "score": "<CGPA or percentage or null>", "duration": "<years/duration or null>"}],
   "projects": [{"title": "<name>", "description": "<1-line desc>", "tech_stack": ["<tech>"]}],
   "skills": ["<skill1>", "<skill2>"],
   "certifications": [{"name": "<cert>", "issuer": "<org or null>", "year": "<year or null>"}],
   "achievements": [],
   "languages": [],
-  "experience": [{"role": "<title>", "company": "<company>", "duration": "<period>", "description": "<brief desc>"}]
+  "experience": [{"role": "<title>", "company": "<company>", "duration": "<period>", "description": "<brief desc>"}],
+  "suggested_roles": ["<role 1>", "<role 2>", "<role 3>"]
 }`;
 
 /**
@@ -468,7 +470,7 @@ function mergeExtraction(primary, secondary) {
   for (const key of ['name', 'location', 'professional_summary', 'total_experience', 'tenth_marks', 'twelfth_marks', 'degree', 'stream', 'cgpa']) {
     merged[key] = primary[key] || secondary[key] || null;
   }
-  for (const key of ['phone', 'email', 'education', 'projects', 'skills', 'certifications', 'achievements', 'languages', 'experience']) {
+  for (const key of ['phone', 'email', 'education', 'projects', 'skills', 'certifications', 'achievements', 'languages', 'experience', 'suggested_roles']) {
     merged[key] = primary[key]?.length ? primary[key] : (secondary[key] || []);
   }
   merged.links = {
@@ -527,6 +529,7 @@ function sanitizeExtraction(data) {
     experience: Array.isArray(data.experience)
       ? data.experience.map((e) => ({ role: cleanScalar(e.role), company: cleanScalar(e.company) || '', duration: cleanScalar(e.duration) || '', description: cleanScalar(e.description) || '' })).filter((e) => e.role || e.company || e.duration || e.description)
       : [],
+    suggested_roles: cleanArray(data.suggested_roles),
   };
 }
 
@@ -560,6 +563,7 @@ function getEmptyExtraction() {
     total_experience: null, links: { portfolio: null, github: null, linkedin: null, other: [] },
     tenth_marks: null, twelfth_marks: null, degree: null, stream: null, cgpa: null,
     education: [], projects: [], skills: [], certifications: [], achievements: [], languages: [], experience: [],
+    suggested_roles: [],
   };
 }
 

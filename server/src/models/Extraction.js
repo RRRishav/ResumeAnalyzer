@@ -57,6 +57,7 @@ const extractionSchema = new mongoose.Schema(
           description: { type: String },
         },
       ],
+      suggested_roles: { type: [String], default: [] },
     },
     model_used: { type: String, default: 'llama3.2' },
     provider_used: { type: String, default: 'ollama' },
