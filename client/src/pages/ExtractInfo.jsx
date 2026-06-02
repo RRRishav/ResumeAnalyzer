@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -6,34 +6,30 @@ import {
   FiAward,
   FiBookOpen,
   FiBriefcase,
-  FiCpu,
-  FiDatabase,
-  FiExternalLink,
-  FiGithub,
-  FiLinkedin,
-  FiMail,
-  FiMapPin,
-  FiPhone,
-  FiRefreshCcw,
-  FiSend,
-  FiStar,
-  FiTool,
-  FiUser,
   FiCheckCircle,
   FiClock,
+  FiCloud,
+  FiCode,
+  FiCpu,
+  FiDatabase,
+  FiEye,
   FiFileText,
   FiGlobe,
-  FiArrowRight,
-  FiCode,
-  FiLink,
-  FiCloud,
+  FiImage,
+  FiRefreshCcw,
+  FiSend,
   FiServer,
+  FiStar,
+  FiTerminal,
+  FiTool,
   FiTrendingUp,
+  FiUploadCloud,
+  FiX,
+  FiZap,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import api from '../services/api';
-import FileUpload from '../components/FileUpload';
 import ProgressBar from '../components/ProgressBar';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -41,49 +37,54 @@ import { Card } from '../components/ui/card';
 import './ExtractInfo.css';
 
 const PRODUCTION_SOCKET_URL = 'https://resume-analyzer-api-12if.onrender.com';
-
 const getSocketURL = () => {
-  if (import.meta.env.DEV) {
-    return import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-  }
+  if (import.meta.env.DEV) return import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
   return import.meta.env.VITE_SOCKET_URL || PRODUCTION_SOCKET_URL;
 };
+
+const STANDARD_EXTS = ['pdf', 'docx', 'doc', 'txt'];
+const OCR_EXTS = ['pdf', 'docx', 'doc', 'txt', 'png', 'jpg', 'jpeg'];
 
 export default function ExtractInfo() {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+
+  /* ── mode: 'standard' | 'ocr' ── */
+  const [mode, setMode] = useState('standard');
+
+  /* ── file state ── */
   const [file, setFile] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef(null);
+
+  /* ── processing state ── */
   const [extracting, setExtracting] = useState(false);
   const [progress, setProgress] = useState({ stage: '', progress: 0, message: '' });
+  const [ocrStep, setOcrStep] = useState('');
+
+  /* ── result state ── */
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [llmStatus, setLlmStatus] = useState('checking'); // 'checking' | 'online' | 'offline'
+  const [viewMode, setViewMode] = useState('beautiful'); // 'beautiful' | 'raw'
+
+  /* ── LLM health (standard mode) ── */
+  const [llmStatus, setLlmStatus] = useState('checking');
   const [llmModel, setLlmModel] = useState('');
-  const [llmProvider, setLlmProvider] = useState(''); // 'Ollama (Local)' | 'Groq Cloud (Llama)'
+  const [llmProvider, setLlmProvider] = useState('');
   const socketRef = useRef(null);
 
-  // Check LLM health on mount
+  /* ── Socket.IO setup ── */
   useEffect(() => {
     checkLLM();
-  }, []);
-
-  // Socket.io setup
-  useEffect(() => {
     const socket = io(getSocketURL(), {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 3,
       timeout: 8000,
     });
     socketRef.current = socket;
-
-    socket.on('extract_progress', (data) => {
-      setProgress(data);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    socket.on('extract_progress', (data) => setProgress(data));
+    return () => socket.disconnect();
   }, []);
 
   const checkLLM = async () => {
@@ -94,45 +95,81 @@ export default function ExtractInfo() {
         setLlmStatus('online');
         setLlmModel(res.data.model || '');
         setLlmProvider(res.data.provider || '');
-        toast.success(`LLM connected ” ${res.data.provider || 'Ready'}`, 3000);
       } else {
         setLlmStatus('offline');
-        toast.warning('No LLM provider available. Check Ollama .', 5000);
       }
     } catch {
       setLlmStatus('offline');
-      toast.error('Could not reach LLM health endpoint', 4000);
     }
   };
 
+  /* ── File handling ── */
+  const handleFile = useCallback((f) => {
+    if (!f) return;
+    const ext = f.name.split('.').pop().toLowerCase();
+    const allowed = mode === 'ocr' ? OCR_EXTS : STANDARD_EXTS;
+    if (!allowed.includes(ext)) {
+      setError(`Unsupported file: .${ext}. ${mode === 'ocr' ? 'Use PDF, DOCX, TXT, PNG, or JPG.' : 'Use PDF, DOCX, or TXT.'}`);
+      return;
+    }
+    if (f.size > 10 * 1024 * 1024) {
+      setError('File too large. Maximum 10 MB.');
+      return;
+    }
+    setFile(f);
+    setError('');
+    setResult(null);
+  }, [mode]);
+
+  const onDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) handleFile(f);
+  }, [handleFile]);
+
+  /* ── Extraction ── */
   const handleExtract = async () => {
     if (!file) return;
     setError('');
     setResult(null);
     setExtracting(true);
-    setProgress({ stage: 'parsing', progress: 5, message: 'Starting extraction...' });
-    toast.info('Extraction started â€” processing your resume...', 3000);
+    toast.info('Extraction started — processing your resume…', 3000);
 
     try {
       const formData = new FormData();
       formData.append('resume', file);
 
-      const res = await api.post('/extract/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'x-socket-id': socketRef.current?.id || '',
-        },
-        timeout: 180000, // 3 min timeout for local LLM
-      });
-
-      setResult(res.data.extraction);
-      setProgress({ stage: 'complete', progress: 100, message: 'Extraction complete!' });
-      refreshUser();
-      toast.success(`Extraction complete via ${res.data.extraction?.provider_used || 'AI'} â€” ${res.data.extraction?.model_used || ''}`, 5000);
+      if (mode === 'standard') {
+        setProgress({ stage: 'parsing', progress: 5, message: 'Starting extraction…' });
+        const res = await api.post('/extract/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'x-socket-id': socketRef.current?.id || '',
+          },
+          timeout: 180000,
+        });
+        setResult({ ...res.data.extraction, _mode: 'standard' });
+        setProgress({ stage: 'complete', progress: 100, message: 'Extraction complete!' });
+        refreshUser();
+        toast.success('Extraction complete!', 4000);
+      } else {
+        /* OCR mode */
+        setOcrStep('uploading');
+        const res = await api.post('/extract/ocr', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 300000,
+        });
+        if (!res.data.success) throw new Error(res.data.error || 'OCR extraction failed');
+        setResult({ ...res.data.extraction, _mode: 'ocr' });
+        setOcrStep('done');
+        toast.success('OCR Extraction complete!', 4000);
+      }
     } catch (err) {
-      const msg = err.response?.data?.error || 'Extraction failed. Make sure an LLM provider is available.';
+      const msg = err.response?.data?.error || err.message || 'Extraction failed.';
       setError(msg);
       setProgress({ stage: '', progress: 0, message: '' });
+      setOcrStep('');
       toast.error(msg, 6000);
     } finally {
       setExtracting(false);
@@ -144,422 +181,472 @@ export default function ExtractInfo() {
     setResult(null);
     setError('');
     setProgress({ stage: '', progress: 0, message: '' });
+    setOcrStep('');
+    setViewMode('beautiful');
   };
 
+  /* ── Derived data ── */
   const data = result?.extracted_data || {};
+  const isOcrResult = result?._mode === 'ocr';
+
   const educationItems = data.education?.length
     ? data.education
     : (data.degree || data.stream || data.cgpa || data.tenth_marks || data.twelfth_marks)
-      ? [{
-          degree: data.degree || 'Education',
-          institution: null,
-          stream: data.stream,
-          score: data.cgpa,
-          duration: null,
-        }]
+      ? [{ degree: data.degree || 'Education', institution: null, stream: data.stream, score: data.cgpa, duration: null }]
       : [];
-  const contactMissing = !data.name && !data.location && !data.phone?.length && !data.email?.length
-    && !data.links?.github && !data.links?.linkedin && !data.links?.portfolio;
+
+  const totalSkillsCount = data.skills
+    ? (Array.isArray(data.skills)
+        ? data.skills.length
+        : Object.values(data.skills).reduce((a, c) => a + (Array.isArray(c) ? c.length : 0), 0))
+    : 0;
 
   const formatTime = (ms) => {
-    if (!ms) return 'â€”';
+    if (!ms) return '—';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
-  // Determine provider icon and label
   const isCloud = llmProvider?.toLowerCase().includes('groq') || llmProvider?.toLowerCase().includes('cloud');
   const providerIcon = isCloud ? <FiCloud size={13} /> : <FiServer size={13} />;
   const providerLabel = llmProvider || (isCloud ? 'Groq Cloud' : 'Ollama Local');
-  const resultProviderLabel = result?.provider_used === 'local-fast'
-    ? 'Local Fast Parser'
-    : (result?.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama Local');
-  const resultProviderShort = result?.provider_used === 'local-fast'
-    ? 'Local Parser'
-    : (result?.provider_used === 'groq' ? 'Groq' : 'Ollama');
 
+  /* ── JSON highlight ── */
+  const renderJson = (obj) => {
+    const s = JSON.stringify(obj, null, 2)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+      .replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+      .replace(/: (\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+      .replace(/: null/g, ': <span class="json-null">null</span>');
+    return <pre className="json-viewer" dangerouslySetInnerHTML={{ __html: s }} />;
+  };
+
+  /* ─────────────────────────────────────────── RENDER ── */
   return (
     <div className="extract-page">
       <div className="container">
-        {/* Header */}
+
+        {/* ── Header ── */}
         <div className="extract-header animate-fade-in-up">
           <div className="extract-header-row">
             <Badge variant="default"><FiDatabase /> AI Extract</Badge>
-            <div className={`ollama-status ${llmStatus}`}>
-              <span className="ollama-status-dot" />
-              {llmStatus === 'checking' && 'Checking LLM...'}
-              {llmStatus === 'online' && (
-                <span className="flex items-center gap-1.5">
-                  {providerIcon} {providerLabel}{llmModel ? ` Â· ${llmModel}` : ''}
-                </span>
-              )}
-              {llmStatus === 'offline' && 'LLM Offline'}
-            </div>
-          </div>
-          <h1>Extract <span className="text-gradient">Resume Info</span></h1>
-          <p>Upload your resume and let AI extract structured data .</p>
-        </div>
-
-        {/* Upload / Results */}
-        {!result ? (
-          <Card className="extract-upload-section animate-fade-in-up stagger-1">
-            <FileUpload file={file} onFileSelect={setFile} onClear={() => setFile(null)} />
-
-            {error && (
-              <div className="extract-error animate-fade-in">
-                <FiAlertTriangle /> {error}
+            {mode === 'standard' && (
+              <div className={`ollama-status ${llmStatus}`}>
+                <span className="ollama-status-dot" />
+                {llmStatus === 'checking' && 'Checking LLM…'}
+                {llmStatus === 'online' && (
+                  <span className="flex items-center gap-1.5">
+                    {providerIcon} {providerLabel}{llmModel ? ` · ${llmModel}` : ''}
+                  </span>
+                )}
+                {llmStatus === 'offline' && 'LLM Offline'}
               </div>
             )}
+          </div>
+          <h1>Extract <span className="text-gradient">Resume Info</span></h1>
+          <p>Upload your resume and let AI extract every detail — structured, anonymized, and ready to review.</p>
 
-            {extracting ? (
+          {/* ── Mode Toggle ── */}
+          <div className="extract-mode-toggle">
+            <button
+              className={`mode-btn ${mode === 'standard' ? 'active' : ''}`}
+              onClick={() => { setMode('standard'); setFile(null); setError(''); setResult(null); }}
+            >
+              <FiFileText size={14} /> Standard (PDF / DOCX)
+            </button>
+            <button
+              className={`mode-btn ${mode === 'ocr' ? 'active' : ''}`}
+              onClick={() => { setMode('ocr'); setFile(null); setError(''); setResult(null); }}
+            >
+              <FiImage size={14} /> Vision OCR (Images / Scanned)
+            </button>
+          </div>
+        </div>
+
+        {/* ── Upload / Processing / Results ── */}
+        {!result ? (
+          <Card className="extract-upload-section animate-fade-in-up stagger-1">
+
+            {/* Dropzone */}
+            {!extracting ? (
+              <>
+                <div
+                  className={`unified-dropzone ${dragOver ? 'drag-over' : ''} ${file ? 'has-file' : ''}`}
+                  onClick={() => inputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={onDrop}
+                >
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept={mode === 'ocr' ? '.pdf,.docx,.doc,.txt,.png,.jpg,.jpeg' : '.pdf,.docx,.doc,.txt'}
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleFile(e.target.files?.[0])}
+                  />
+                  <div className="dropzone-icon-wrap">
+                    {mode === 'ocr' ? <FiImage size={26} /> : <FiUploadCloud size={26} />}
+                  </div>
+                  <h3>{file ? 'File selected' : (mode === 'ocr' ? 'Drop your resume or image here' : 'Drop your resume here')}</h3>
+                  <p>
+                    {file
+                      ? ''
+                      : mode === 'ocr'
+                        ? 'or click to browse — PDF, DOCX, TXT, PNG, JPG (max 10 MB)'
+                        : 'or click to browse — PDF, DOCX, or TXT (max 10 MB)'}
+                  </p>
+                  {file && (
+                    <div className="dropzone-file-badge">
+                      <FiFileText size={14} />
+                      {file.name} ({(file.size / 1024).toFixed(0)} KB)
+                      <button onClick={(e) => { e.stopPropagation(); setFile(null); }}>
+                        <FiX size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {error && (
+                  <div className="extract-error animate-fade-in">
+                    <FiAlertTriangle /> {error}
+                  </div>
+                )}
+
+                <Button
+                  size="lg"
+                  className="extract-submit"
+                  onClick={handleExtract}
+                  disabled={!file || extracting || (mode === 'standard' && llmStatus === 'offline')}
+                >
+                  {mode === 'ocr' ? <><FiCpu /> Extract with Vision OCR</> : <><FiSend /> Extract Resume</>}
+                </Button>
+
+                {mode === 'standard' && llmStatus === 'offline' && (
+                  <div className="extract-error" style={{ marginTop: '0.75rem' }}>
+                    <FiAlertTriangle />
+                    LLM service unavailable — please retry in a moment.
+                    <Button size="sm" variant="outline" onClick={checkLLM} style={{ marginLeft: 'auto' }}>
+                      <FiRefreshCcw size={14} /> Retry
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : mode === 'standard' ? (
+              /* Standard: socket-driven progress bar */
               <ProgressBar stage={progress.stage} progress={progress.progress} message={progress.message} />
             ) : (
-              <Button
-                size="lg"
-                className="extract-submit"
-                onClick={handleExtract}
-                disabled={!file || extracting || llmStatus === 'offline'}
-              >
-                <FiSend /> Extract Resume
-              </Button>
-            )}
-
-            {llmStatus === 'offline' && (
-              <div className="extract-error" style={{ marginTop: '0.75rem' }}>
-                <FiAlertTriangle />
-                LLM service is unavailable. The server may still be starting up â€” please retry in a moment.
-                <Button size="sm" variant="outline" onClick={checkLLM} style={{ marginLeft: 'auto' }}>
-                  <FiRefreshCcw size={14} /> Retry
-                </Button>
+              /* OCR: step-indicator */
+              <div className="ocr-processing">
+                <div className="ocr-spinner" />
+                <h3>Extracting resume data…</h3>
+                <p>Groq Vision AI is reading your document</p>
+                <div className="ocr-step-list">
+                  {[
+                    { key: 'uploading', icon: <FiCheckCircle size={14} />, label: 'Uploading file' },
+                    { key: 'ocr',      icon: <FiImage size={14} />,        label: 'OCR processing' },
+                    { key: 'done',     icon: <FiCpu size={14} />,          label: 'Extracting details' },
+                  ].map(({ key, icon, label }) => (
+                    <div
+                      key={key}
+                      className={`ocr-step ${ocrStep === key ? 'active' : (ocrStep === 'done' || (key === 'uploading' && ocrStep !== '')) ? 'done' : ''}`}
+                    >
+                      {icon} {label}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </Card>
         ) : (
           <div className="extract-results">
-            {/* Result Hero */}
+
+            {/* ── Result Hero ── */}
             <Card className="extract-result-hero extract-fade-in d1">
               <div>
                 <Badge variant="success"><FiCheckCircle /> Extraction Complete</Badge>
-                <h2>{data.name || result.filename}</h2>
-                <p>Extracted from {result.filename} using <strong>{resultProviderLabel}</strong> · {result.model_used}</p>
+                <h2>{result.filename}</h2>
+                <p>
+                  Extracted via <strong>{isOcrResult ? 'Groq Vision OCR' : (result.provider_used === 'groq' ? 'Groq Cloud' : 'Local Parser')}</strong>
+                  {result.model_used ? ` · ${result.model_used}` : ''}
+                  {isOcrResult && result.pages_processed ? ` · ${result.pages_processed} page(s)` : ''}
+                </p>
                 <div className="extract-result-actions">
                   <Button onClick={handleReset}><FiRefreshCcw /> Extract Another</Button>
-                  <Button variant="outline" onClick={() => navigate(`/extract-detail/${result.id}`)}>
-                    Full View <FiArrowRight />
-                  </Button>
+                  {!isOcrResult && result.id && (
+                    <Button variant="outline" onClick={() => navigate(`/extract-detail/${result.id}`)}>
+                      Full View <FiZap size={14} />
+                    </Button>
+                  )}
+                  {/* View toggle */}
+                  <div className="ocr-view-toggle" style={{ marginLeft: 'auto' }}>
+                    <button className={`ocr-view-btn ${viewMode === 'beautiful' ? 'active' : ''}`} onClick={() => setViewMode('beautiful')}>
+                      <FiEye size={13} /> Formatted
+                    </button>
+                    <button className={`ocr-view-btn ${viewMode === 'raw' ? 'active' : ''}`} onClick={() => setViewMode('raw')}>
+                      <FiTerminal size={13} /> Raw JSON
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="extract-result-meta">
-                <div className="extract-meta-item">
-                  <span>Provider</span>
-                  <strong className="flex items-center gap-1">
-                    {result.provider_used === 'groq' ? <FiCloud size={13} /> : <FiServer size={13} />}
-                    {resultProviderShort}
-                  </strong>
-                </div>
-                <div className="extract-meta-item">
-                  <span>Model</span>
-                  <strong>{result.model_used}</strong>
-                </div>
-                <div className="extract-meta-item">
-                  <span>Time</span>
-                  <strong>{formatTime(result.processing_time_ms)}</strong>
-                </div>
-                <div className="extract-meta-item">
-                  <span>Words</span>
-                  <strong>{result.word_count}</strong>
-                </div>
-                <div className="extract-meta-item">
-                  <span>Experience</span>
-                  <strong>{data.total_experience || 'N/A'}</strong>
-                </div>
+                {[
+                  { label: 'Provider',    val: isOcrResult ? 'Groq OCR' : (result.provider_used === 'groq' ? 'Groq' : 'Local') },
+                  { label: 'Model',       val: result.model_used || '—' },
+                  { label: 'Time',        val: formatTime(result.processing_time_ms) },
+                  { label: 'Words',       val: result.word_count || '—' },
+                  { label: 'Experience',  val: data.total_experience || 'N/A' },
+                ].map(({ label, val }) => (
+                  <div className="extract-meta-item" key={label}>
+                    <span>{label}</span>
+                    <strong>{val}</strong>
+                  </div>
+                ))}
               </div>
             </Card>
 
-            {/* Sections Grid */}
-            <div className="extract-grid">
-              <Card className="extract-section summary-section extract-grid-full extract-fade-in d2">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiFileText /></div>
-                  Professional Summary
-                </div>
-                {data.professional_summary ? (
-                  <p className="extract-summary-text">{data.professional_summary}</p>
-                ) : (
-                  <div className="extract-empty">No professional summary found</div>
+            {/* ── Raw JSON view ── */}
+            {viewMode === 'raw' && (
+              <Card className="ocr-raw-json extract-fade-in d2">
+                {renderJson(data)}
+              </Card>
+            )}
+
+            {/* ── Beautiful view ── */}
+            {viewMode === 'beautiful' && (
+              <div className="extract-grid">
+
+                {/* Professional Summary */}
+                {/* Professional Summary */}
+                {data.professional_summary && (
+                  <Card className="extract-section summary-section extract-grid-full extract-fade-in d2">
+                    <div className="extract-section-title">
+                      <div className="extract-section-icon"><FiFileText /></div>
+                      Professional Summary
+                    </div>
+                    <p className="extract-summary-text">{data.professional_summary}</p>
+                  </Card>
                 )}
-              </Card>
 
-              {/* Personal Info */}
-              <Card className="extract-section personal extract-fade-in d2">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiUser /></div>
-                  Personal Information
-                </div>
-                <div className="personal-info-grid">
-                  {data.name && (
-                    <div className="personal-info-row">
-                      <FiUser size={14} />
-                      <span className="personal-info-label">Name</span>
-                      <span className="personal-info-value">{data.name}</span>
+                {/* Career Recommendations */}
+                {data.career_recommendations?.length > 0 && (
+                  <Card className="extract-section roles-section extract-grid-full extract-fade-in d2">
+                    <div className="extract-section-title">
+                      <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
+                      Career Recommendations
                     </div>
-                  )}
-                  {data.phone?.length > 0 && data.phone.map((p, i) => (
-                    <div key={i} className="personal-info-row">
-                      <FiPhone size={14} />
-                      <span className="personal-info-label">Phone</span>
-                      <span className="personal-info-value">{p}</span>
-                    </div>
-                  ))}
-                  {data.email?.length > 0 && data.email.map((e, i) => (
-                    <div key={i} className="personal-info-row">
-                      <FiMail size={14} />
-                      <span className="personal-info-label">Email</span>
-                      <span className="personal-info-value">
-                        <a href={`mailto:${e}`}>{e}</a>
-                      </span>
-                    </div>
-                  ))}
-                  {data.location && (
-                    <div className="personal-info-row">
-                      <FiMapPin size={14} />
-                      <span className="personal-info-label">Location</span>
-                      <span className="personal-info-value">{data.location}</span>
-                    </div>
-                  )}
-                  {data.links?.github && (
-                    <div className="personal-info-row">
-                      <FiGithub size={14} />
-                      <span className="personal-info-label">GitHub</span>
-                      <span className="personal-info-value">
-                        <a href={data.links.github} target="_blank" rel="noreferrer">{data.links.github}</a>
-                      </span>
-                    </div>
-                  )}
-                  {data.links?.linkedin && (
-                    <div className="personal-info-row">
-                      <FiLinkedin size={14} />
-                      <span className="personal-info-label">LinkedIn</span>
-                      <span className="personal-info-value">
-                        <a href={data.links.linkedin} target="_blank" rel="noreferrer">{data.links.linkedin}</a>
-                      </span>
-                    </div>
-                  )}
-                  {data.links?.portfolio && (
-                    <div className="personal-info-row">
-                      <FiGlobe size={14} />
-                      <span className="personal-info-label">Portfolio</span>
-                      <span className="personal-info-value">
-                        <a href={data.links.portfolio} target="_blank" rel="noreferrer">{data.links.portfolio}</a>
-                      </span>
-                    </div>
-                  )}
-                  {data.links?.other?.length > 0 && data.links.other.map((url, i) => (
-                    <div key={i} className="personal-info-row">
-                      <FiLink size={14} />
-                      <span className="personal-info-label">Link</span>
-                      <span className="personal-info-value">
-                        <a href={url} target="_blank" rel="noreferrer">{url}</a>
-                      </span>
-                    </div>
-                  ))}
-                  {contactMissing && (
-                    <div className="extract-empty">No personal information found</div>
-                  )}
-                </div>
-              </Card>
-
-              {/* Education */}
-              <Card className="extract-section education extract-fade-in d3">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiBookOpen /></div>
-                  Education
-                </div>
-                {educationItems.length > 0 ? (
-                  <div className="extract-timeline">
-                    {educationItems.map((edu, i) => (
-                      <div key={i} className="extract-timeline-card">
-                        <div className="extract-timeline-title">{edu.degree || 'Education'}</div>
-                        {edu.institution && <div className="extract-timeline-subtitle">{edu.institution}</div>}
-                        <div className="extract-mini-tags">
-                          {edu.stream && <span>{edu.stream}</span>}
-                          {edu.score && <span>{edu.score}</span>}
-                          {edu.duration && <span>{edu.duration}</span>}
+                    <div className="result-careers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+                      {data.career_recommendations.map((c, i) => (
+                        <div key={i} className="career-item" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="career-info" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingRight: '1rem' }}>
+                            <span className="career-role" style={{ fontWeight: '600', fontSize: '1rem', color: '#fff' }}>{c.role}</span>
+                            <span className="career-reason" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', lineHeight: '1.4' }}>{c.reason}</span>
+                          </div>
+                          <div className="career-match" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)', padding: '0.5rem 0.75rem', borderRadius: '8px', minWidth: '70px' }}>
+                            <span className="career-match-value" style={{ fontWeight: 'bold', color: '#60a5fa', fontSize: '1.1rem' }}>{c.match_score}%</span>
+                            <span className="career-match-label" style={{ fontSize: '0.7rem', color: 'rgba(96,165,250,0.8)', textTransform: 'uppercase' }}>Match</span>
+                          </div>
                         </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Suggested Roles */}
+                {data.suggested_roles?.length > 0 && (
+                  <Card className="extract-section roles-section extract-grid-full extract-fade-in d2">
+                    <div className="extract-section-title">
+                      <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
+                      Suggested Job Roles
+                    </div>
+                    <p className="extract-summary-text" style={{ marginBottom: '0.85rem', fontSize: '0.9rem' }}>
+                      Based on your skills, experience, and projects — AI-recommended roles:
+                    </p>
+                    <div className="extract-skills-grid">
+                      {data.suggested_roles.map((role, i) => (
+                        <span key={i} className="extract-skill-tag role-tag">{role}</span>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Education */}
+                <Card className="extract-section education extract-fade-in d3">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiBookOpen /></div>
+                    Education
+                  </div>
+                  {educationItems.length > 0 ? (
+                    <div className="extract-timeline">
+                      {educationItems.map((edu, i) => (
+                        <div key={i} className="extract-timeline-card">
+                          <div className="extract-timeline-title">{edu.degree || 'Education'}</div>
+                          {edu.institution && <div className="extract-timeline-subtitle">{edu.institution}</div>}
+                          <div className="extract-mini-tags">
+                            {edu.stream && <span>{edu.stream}</span>}
+                            {edu.score && <span>{edu.score}</span>}
+                            {edu.duration && <span>{edu.duration}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="extract-empty">No education details found</div>
+                  )}
+                  <div className="education-grid education-score-grid">
+                    {[
+                      ['10th Marks', data.tenth_marks],
+                      ['12th Marks', data.twelfth_marks],
+                      ['Degree', data.degree],
+                      ['Stream', data.stream],
+                      ['CGPA / %', data.cgpa],
+                    ].map(([label, val]) => (
+                      <div className="education-item" key={label}>
+                        <div className="education-item-label">{label}</div>
+                        <div className={`education-item-value ${!val ? 'empty' : ''}`}>{val || 'N/A'}</div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="extract-empty">No education details found</div>
-                )}
-                <div className="education-grid education-score-grid">
-                  <div className="education-item">
-                    <div className="education-item-label">10th Marks</div>
-                    <div className={`education-item-value ${!data.tenth_marks ? 'empty' : ''}`}>
-                      {data.tenth_marks || 'N/A'}
-                    </div>
-                  </div>
-                  <div className="education-item">
-                    <div className="education-item-label">12th Marks</div>
-                    <div className={`education-item-value ${!data.twelfth_marks ? 'empty' : ''}`}>
-                      {data.twelfth_marks || 'N/A'}
-                    </div>
-                  </div>
-                  <div className="education-item">
-                    <div className="education-item-label">Degree</div>
-                    <div className={`education-item-value ${!data.degree ? 'empty' : ''}`}>
-                      {data.degree || 'N/A'}
-                    </div>
-                  </div>
-                  <div className="education-item">
-                    <div className="education-item-label">Stream</div>
-                    <div className={`education-item-value ${!data.stream ? 'empty' : ''}`}>
-                      {data.stream || 'N/A'}
-                    </div>
-                  </div>
-                  <div className="education-item">
-                    <div className="education-item-label">CGPA</div>
-                    <div className={`education-item-value ${!data.cgpa ? 'empty' : ''}`}>
-                      {data.cgpa || 'N/A'}
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                </Card>
 
-              {/* Skills */}
-              <Card className="extract-section skills-section extract-fade-in d4">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiTool /></div>
-                  Skills
-                  {data.skills?.length > 0 && (
-                    <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.skills.length} found</Badge>
-                  )}
-                </div>
-                {data.skills?.length > 0 ? (
-                  <div className="extract-skills-grid">
-                    {data.skills.map((skill, i) => (
-                      <span key={i} className="extract-skill-tag">{skill}</span>
-                    ))}
+                {/* Skills */}
+                <Card className="extract-section skills-section extract-fade-in d4">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiTool /></div>
+                    Skills
+                    {totalSkillsCount > 0 && (
+                      <Badge variant="muted" style={{ marginLeft: 'auto' }}>{totalSkillsCount} found</Badge>
+                    )}
                   </div>
-                ) : (
-                  <div className="extract-empty">No skills found</div>
-                )}
-              </Card>
-
-              {/* Certifications */}
-              <Card className="extract-section certs-section extract-fade-in d5">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiAward /></div>
-                  Certifications
-                </div>
-                {data.certifications?.length > 0 ? (
-                  data.certifications.map((cert, i) => (
-                    <div key={i} className="extract-cert-card">
-                      <div className="extract-cert-icon"><FiAward size={16} /></div>
-                      <div className="extract-cert-info">
-                        <div className="extract-cert-name">{cert.name}</div>
-                        <div className="extract-cert-meta">
-                          {cert.issuer && <span>{cert.issuer}</span>}
-                          {cert.issuer && cert.year && <span> Â· </span>}
-                          {cert.year && <span>{cert.year}</span>}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="extract-empty">No certifications found</div>
-                )}
-              </Card>
-
-              <Card className="extract-section achievements-section extract-fade-in d6">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiTrendingUp /></div>
-                  Achievements
-                </div>
-                {data.achievements?.length > 0 ? (
-                  <ul className="extract-bullet-list">
-                    {data.achievements.map((item, i) => <li key={i}>{item}</li>)}
-                  </ul>
-                ) : (
-                  <div className="extract-empty">No achievements found</div>
-                )}
-              </Card>
-
-              <Card className="extract-section languages-section extract-fade-in d6">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiGlobe /></div>
-                  Languages
-                </div>
-                {data.languages?.length > 0 ? (
-                  <div className="extract-skills-grid">
-                    {data.languages.map((language, i) => (
-                      <span key={i} className="extract-language-tag">{language}</span>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="extract-empty">No languages found</div>
-                )}
-              </Card>
-
-              {/* Projects */}
-              <Card className="extract-section projects-section extract-grid-full extract-fade-in d6">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiCode /></div>
-                  Projects
-                  {data.projects?.length > 0 && (
-                    <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.projects.length} projects</Badge>
-                  )}
-                </div>
-                {data.projects?.length > 0 ? (
-                  data.projects.map((project, i) => (
-                    <div key={i} className="extract-project-card">
-                      <div className="extract-project-title">{project.title}</div>
-                      {project.description && (
-                        <div className="extract-project-desc">{project.description}</div>
-                      )}
-                      {project.tech_stack?.length > 0 && (
-                        <div className="extract-project-tech">
-                          {project.tech_stack.map((tech, j) => (
-                            <span key={j}>{tech}</span>
+                  {totalSkillsCount === 0
+                    ? <div className="extract-empty">No skills found</div>
+                    : Array.isArray(data.skills)
+                      ? <div className="extract-skills-grid">{data.skills.map((s, i) => <span key={i} className="extract-skill-tag">{s}</span>)}</div>
+                      : (
+                        <div className="extract-skills-categories">
+                          {Object.entries(data.skills).map(([cat, list]) => (
+                            <div key={cat} className="extract-skill-category-group">
+                              <h4 className="skill-category-title">{cat}</h4>
+                              <div className="extract-skills-grid">
+                                {Array.isArray(list) && list.map((s, i) => <span key={i} className="extract-skill-tag">{s}</span>)}
+                              </div>
+                            </div>
                           ))}
                         </div>
                       )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="extract-empty">No projects found</div>
-                )}
-              </Card>
+                </Card>
 
-              {/* Experience */}
-              <Card className="extract-section experience-section extract-grid-full extract-fade-in d7">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiBriefcase /></div>
-                  Work Experience
-                  {data.total_experience && (
-                    <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.total_experience}</Badge>
-                  )}
-                </div>
-                {data.experience?.length > 0 ? (
-                  <div className="extract-exp-timeline">
-                    {data.experience.map((exp, i) => (
-                      <div key={i} className="extract-exp-item">
-                        <div className="extract-exp-role">{exp.role}</div>
-                        {exp.company && <div className="extract-exp-company">{exp.company}</div>}
-                        {exp.duration && <div className="extract-exp-duration">{exp.duration}</div>}
-                        {exp.description && <div className="extract-exp-desc">{exp.description}</div>}
-                      </div>
-                    ))}
+                {/* Certifications */}
+                <Card className="extract-section certs-section extract-fade-in d5">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiAward /></div>
+                    Certifications
                   </div>
-                ) : (
-                  <div className="extract-empty">No work experience found</div>
-                )}
-              </Card>
-            </div>
+                  {data.certifications?.length > 0 ? (
+                    data.certifications.map((c, i) => (
+                      <div key={i} className="extract-cert-card">
+                        <div className="extract-cert-icon"><FiAward size={16} /></div>
+                        <div className="extract-cert-info">
+                          <div className="extract-cert-name">{c.name}</div>
+                          <div className="extract-cert-meta">
+                            {c.issuer && <span>{c.issuer}</span>}
+                            {c.issuer && c.year && <span> · </span>}
+                            {c.year && <span>{c.year}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="extract-empty">No certifications found</div>
+                  )}
+                </Card>
+
+                {/* Achievements */}
+                <Card className="extract-section achievements-section extract-fade-in d6">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiTrendingUp /></div>
+                    Achievements &amp; Awards
+                  </div>
+                  {data.achievements?.length > 0 ? (
+                    <ul className="extract-bullet-list">
+                      {data.achievements.map((a, i) => <li key={i}>{a}</li>)}
+                    </ul>
+                  ) : (
+                    <div className="extract-empty">No achievements found</div>
+                  )}
+                </Card>
+
+                {/* Languages */}
+                <Card className="extract-section languages-section extract-fade-in d6">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiGlobe /></div>
+                    Languages
+                  </div>
+                  {data.languages?.length > 0 ? (
+                    <div className="extract-skills-grid">
+                      {data.languages.map((l, i) => <span key={i} className="extract-language-tag">{l}</span>)}
+                    </div>
+                  ) : (
+                    <div className="extract-empty">No languages found</div>
+                  )}
+                </Card>
+
+                {/* Projects */}
+                <Card className="extract-section projects-section extract-grid-full extract-fade-in d6">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiCode /></div>
+                    Projects
+                    {data.projects?.length > 0 && (
+                      <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.projects.length} projects</Badge>
+                    )}
+                  </div>
+                  {data.projects?.length > 0 ? (
+                    data.projects.map((p, i) => (
+                      <div key={i} className="extract-project-card">
+                        <div className="extract-project-title">{p.title}</div>
+                        {p.description && <div className="extract-project-desc">{p.description}</div>}
+                        {p.tech_stack?.length > 0 && (
+                          <div className="extract-project-tech">
+                            {p.tech_stack.map((t, j) => <span key={j}>{t}</span>)}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="extract-empty">No projects found</div>
+                  )}
+                </Card>
+
+                {/* Experience */}
+                <Card className="extract-section experience-section extract-grid-full extract-fade-in d7">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiBriefcase /></div>
+                    Work Experience
+                    {data.total_experience && (
+                      <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.total_experience}</Badge>
+                    )}
+                  </div>
+                  {data.experience?.length > 0 ? (
+                    <div className="extract-exp-timeline">
+                      {data.experience.map((exp, i) => (
+                        <div key={i} className="extract-exp-item">
+                          <div className="extract-exp-role">{exp.role}</div>
+                          {exp.company && <div className="extract-exp-company">{exp.company}</div>}
+                          {exp.duration && <div className="extract-exp-duration">{exp.duration}</div>}
+                          {exp.description && <div className="extract-exp-desc">{exp.description}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="extract-empty">No work experience found</div>
+                  )}
+                </Card>
+
+              </div>
+            )}
           </div>
         )}
       </div>
     </div>
   );
 }
-

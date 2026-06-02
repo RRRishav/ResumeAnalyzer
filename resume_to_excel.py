@@ -102,7 +102,7 @@ RULES:
 - Keep it concise — only important information
 - Phone numbers should include country code if present
 - Skills should be individual skill names as simple strings
-- Projects: just title and technologies used
+- Projects: Extract detailed information for each project, including title, complete description (features/achievements), and technologies used
 
 Return this EXACT JSON structure:
 {
@@ -118,7 +118,13 @@ Return this EXACT JSON structure:
   "linkedin": "<LinkedIn URL or null>",
   "portfolio": "<Portfolio/website URL or null>",
   "skills": ["<skill1>", "<skill2>", "<skill3>"],
-  "projects": ["<project1 title>", "<project2 title>"],
+  "projects": [
+    {
+      "title": "<project name>",
+      "description": "<complete detailed description/features/achievements>",
+      "tech_stack": ["<tech>"]
+    }
+  ],
   "certifications": ["<cert1>", "<cert2>"],
   "experience": "<total experience summary or null>",
   "languages": ["<lang1>", "<lang2>"]
@@ -169,6 +175,24 @@ def arr_to_str(value):
     if isinstance(value, list):
         return "; ".join(str(v) for v in value if v)
     return str(value) if value else ""
+
+
+def projects_to_str(projects):
+    """Convert projects array (dicts or strings) to a clean formatted string."""
+    if not isinstance(projects, list):
+        return str(projects) if projects else ""
+    lines = []
+    for proj in projects:
+        if isinstance(proj, dict):
+            title = proj.get("title") or "Untitled Project"
+            desc = proj.get("description") or ""
+            tech = proj.get("tech_stack") or []
+            tech_str = f" ({', '.join(tech)})" if tech else ""
+            desc_str = f": {desc}" if desc else ""
+            lines.append(f"{title}{tech_str}{desc_str}")
+        else:
+            lines.append(str(proj))
+    return "; ".join(lines)
 
 
 def create_excel(all_data, output_path):
@@ -266,7 +290,7 @@ def create_excel(all_data, output_path):
             data.get("linkedin", ""),                     # LinkedIn
             data.get("portfolio", ""),                    # Portfolio
             arr_to_str(data.get("skills", [])),           # Skills
-            arr_to_str(data.get("projects", [])),         # Projects
+            projects_to_str(data.get("projects", [])),         # Projects
             arr_to_str(data.get("certifications", [])),   # Certifications
             data.get("experience", ""),                   # Experience
             arr_to_str(data.get("languages", [])),        # Languages

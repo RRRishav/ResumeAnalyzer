@@ -61,46 +61,56 @@ EXTRACT_PROMPT = """You are an expert resume OCR parser. Look at this resume ima
 
 Return ONLY valid JSON — no explanation, no markdown fences.
 
+RULES:
+- Do NOT include any personal details, including name, contact information, phone numbers, email addresses, physical addresses, locations, personal URLs/links (GitHub, LinkedIn, portfolios, etc.), or other identifying details. Set name, location, and links fields to null or empty arrays/objects.
+- Do NOT include college, university, or school names anywhere in the extraction. Set institution/school names to null.
+- For education: Include degree/education details (like B.Tech, MCA, etc.) and schooling details (10th, 12th) along with CGPA/percentage/grades, but EXCLUDE the college/university/school names (set institution to null).
+- For professional_summary: Only extract the professional summary if it is explicitly written in the resume (under sections like Summary, Objective, Profile, About). Do NOT auto-generate a summary if it is not explicitly written in the resume. If not explicitly present, set this field to null. Under no circumstances should you return placeholder messages like "No professional summary" or generic candidate descriptions.
+- For projects: extract title, complete detailed description (including all key features, responsibilities, achievements, and metrics where available), and technologies used. Do NOT truncate or summarize details to a single line; extract the project details fully. Do NOT include company/client details if they are identifying.
+- For experience: include role, company (set to null if it is identifying, or use generic sector name like "E-commerce Startup"), duration, and brief description.
+
 Extract this EXACT structure:
 {
-  "name": "<full name or null>",
-  "email": "<email address or null>",
-  "phone": "<phone number with country code or null>",
-  "location": "<city, state or null>",
-  "professional_summary": "<2-3 line summary or null>",
+  "name": null,
+  "email": [],
+  "phone": [],
+  "location": null,
+  "professional_summary": "<extracted summary or null (only extract if explicitly written in the resume; do NOT auto-generate a summary if it is not explicitly written in the resume)>",
   "total_experience": "<e.g. 3+ years or null>",
   "links": {
-    "github": "<GitHub URL or null>",
-    "linkedin": "<LinkedIn URL or null>",
-    "portfolio": "<portfolio URL or null>",
-    "other": ["<other URLs>"]
+    "github": null,
+    "linkedin": null,
+    "portfolio": null,
+    "other": []
   },
   "degree": "<highest degree like B.Tech, BCA, MCA or null>",
   "stream": "<branch like CSE, IT, ECE or null>",
   "cgpa": "<CGPA or percentage or null>",
   "tenth_marks": "<10th marks/percentage or null>",
   "twelfth_marks": "<12th marks/percentage or null>",
-  "education": [{"degree": "<degree>", "institution": "<college>", "stream": "<branch>", "score": "<CGPA/%>", "duration": "<years>"}],
+  "education": [{"degree": "<degree>", "institution": null, "stream": "<branch>", "score": "<CGPA/%>", "duration": "<years>"}],
   "skills": ["<skill1>", "<skill2>", "<skill3>"],
-  "projects": [{"title": "<name>", "description": "<1-line desc>", "tech_stack": ["<tech>"]}],
+  "projects": [{"title": "<name>", "description": "<complete detailed description/features/achievements>", "tech_stack": ["<tech>"]}],
   "certifications": [{"name": "<cert>", "issuer": "<org or null>", "year": "<year or null>"}],
-  "experience": [{"role": "<title>", "company": "<company>", "duration": "<period>", "description": "<brief desc>"}],
+  "experience": [{"role": "<title>", "company": null, "duration": "<period>", "description": "<brief desc>"}],
   "achievements": ["<achievement1>", "<achievement2>"],
-  "languages": ["<lang1>", "<lang2>"]
+  "languages": ["<lang1>", "<lang2>"],
+  "suggested_roles": ["<role1>", "<role2>"],
+  "career_recommendations": [{"role": "<role>", "match_score": 85, "reason": "<reason>"}]
 }"""
 
 MERGE_PROMPT = """You are an expert resume data merger. I have extracted resume data from multiple pages of the same resume.
 Merge them into a single clean JSON. Remove duplicates. Combine skills, projects, experience etc.
-If same field appears multiple times, keep the most complete version.
+If same field appears multiple times, keep the most complete version. Ensure all identifying details remain null or blank as per privacy constraints.
 
 Return ONLY valid JSON — no explanation, no markdown.
 
 Use this exact structure:
 {
-  "name": "<full name or null>",
-  "email": "<email or null>",
-  "phone": "<phone or null>",
-  "location": "<location or null>",
+  "name": null,
+  "email": [],
+  "phone": [],
+  "location": null,
   "professional_summary": "<summary or null>",
   "total_experience": "<experience or null>",
   "links": {"github": null, "linkedin": null, "portfolio": null, "other": []},
@@ -113,9 +123,11 @@ Use this exact structure:
   "skills": [],
   "projects": [{"title": "", "description": "", "tech_stack": []}],
   "certifications": [{"name": "", "issuer": null, "year": null}],
-  "experience": [{"role": "", "company": "", "duration": "", "description": ""}],
+  "experience": [{"role": "", "company": null, "duration": "", "description": ""}],
   "achievements": [],
-  "languages": []
+  "languages": [],
+  "suggested_roles": [],
+  "career_recommendations": []
 }"""
 
 
@@ -344,6 +356,45 @@ def process_resume(file_path, filename="resume"):
             extracted = get_empty_result()
     else:
         extracted = get_empty_result()
+
+    # Clean professional_summary to remove any auto-generated messages
+    if extracted and isinstance(extracted.get("professional_summary"), str):
+        summary = extracted["professional_summary"].strip()
+        lower_summary = summary.lower()
+        if (
+            not lower_summary 
+            or lower_summary in ("null", "none", "n/a", "na", "undefined", "unknown") 
+            or "no professional summary" in lower_summary 
+            or "no summary" in lower_summary 
+            or "not provided" in lower_summary 
+            or "not available" in lower_summary 
+            or "not present" in lower_summary 
+            or "no explicit" in lower_summary
+        ):
+            extracted["professional_summary"] = None
+        else:
+            extracted["professional_summary"] = summary
+
+    # Strict anonymization check (exclusivity rules)
+    if extracted:
+        extracted["name"] = None
+        extracted["email"] = []
+        extracted["phone"] = []
+        extracted["location"] = None
+        extracted["links"] = {
+            "portfolio": None,
+            "github": None,
+            "linkedin": None,
+            "other": []
+        }
+        if "education" in extracted and isinstance(extracted["education"], list):
+            for edu in extracted["education"]:
+                if isinstance(edu, dict):
+                    edu["institution"] = None
+        if "experience" in extracted and isinstance(extracted["experience"], list):
+            for exp in extracted["experience"]:
+                if isinstance(exp, dict):
+                    exp["company"] = None
 
     elapsed = time.time() - start_time
     name = extracted.get("name", "Unknown") if extracted else "Unknown"

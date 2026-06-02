@@ -65,46 +65,112 @@ async function checkOllamaHealth() {
 const EXTRACT_SYSTEM_PROMPT = `You are an expert resume parser. Extract ONLY the specified fields from the resume text. Return valid JSON only — no explanation, no markdown.
 
 RULES:
-- Extract ONLY the fields in the schema below
-- If a field is not found, use null (strings) or [] (arrays)
-- Never return placeholder text, angle-bracket examples, or [object Object]
-- Do NOT include city names, addresses, or locations (but DO include school, college, and university names in the education section)
-- Do NOT include date of birth, gender, nationality, marital status, or father's name
-- Phone numbers should include country code if present
-- For projects: extract title, 1-line description, and technologies used
-- For skills: list individual skill names as simple strings
-- For certifications: include cert name, issuing organization, and year
-- For experience: include role, company, duration, and brief description
-- For suggested_roles: analyze the candidate's skills, experience, and projects, and list 2-4 target job roles they are best fit for.
+- Extract ONLY the fields in the schema below.
+- If a field is not found, use null (strings), {} (objects) or [] (arrays).
+- Never return placeholder text, angle-bracket examples, or [object Object].
+- Do NOT include any personal details, including name, contact information, phone numbers, email addresses, physical addresses, locations, personal URLs/links (GitHub, LinkedIn, portfolios, etc.), or other identifying details. Set name, location, and links fields to null or empty arrays/objects.
+- Do NOT include college, university, or school names anywhere in the extraction. Set institution/school names to null.
+- Phone numbers and emails should be empty arrays since we are excluding personal/identifying info.
+- For education: Include degree/education details (like B.Tech, MCA, etc.) and schooling details (10th, 12th) along with CGPA/percentage/grades, but EXCLUDE the college/university/school names (set institution to null).
+- For professional_summary: Only extract the professional summary if it is explicitly written in the resume (under sections like Summary, Objective, Profile, About). Do NOT auto-generate, synthesize, or invent a summary if the resume does not contain one. If not explicitly present, set this field to null. Under no circumstances should you return placeholder messages like "No professional summary" or generic candidate descriptions.
+- For projects: extract title, complete detailed description (including all key features, responsibilities, achievements, and metrics where available), and technologies used. Do NOT truncate or summarize details to a single line; extract the project details fully. Do NOT include company/client details if they are identifying.
+- For skills: group the skills into appropriate categories (e.g., "Programming Languages", "Frameworks & Libraries", "Databases", "Tools", "Soft Skills", etc.) as key-value pairs where the key is the category and the value is an array of skills.
+- For certifications: include cert name, issuing organization (if not identifying), and year.
+- For experience: include role, company (set to null if it is identifying, or use generic sector name like "E-commerce Startup"), duration, and brief description.
+- For suggested_roles: analyze the candidate's skills and experience, and list 2-4 target job roles they are best fit for.
+- For career_recommendations: analyze the candidate's skills and experience, and list 2-4 target job roles along with a match score (0-100) and a brief reason (1 sentence) explaining why they fit the role.
 
 Return this exact JSON structure:
 {
-  "name": "<full name or null>",
-  "phone": ["<phone numbers>"],
-  "email": ["<email addresses>"],
+  "name": null,
+  "phone": [],
+  "email": [],
   "location": null,
-  "professional_summary": null,
-  "total_experience": null,
+  "professional_summary": "<extracted summary or null>",
+  "total_experience": "<total years of experience, e.g. 3 years>",
   "links": {
-    "portfolio": "<portfolio URL or null>",
-    "github": "<GitHub URL or null>",
-    "linkedin": "<LinkedIn URL or null>",
-    "other": ["<other relevant URLs>"]
+    "portfolio": null,
+    "github": null,
+    "linkedin": null,
+    "other": []
   },
   "tenth_marks": "<10th marks/percentage/CGPA or null>",
   "twelfth_marks": "<12th marks/percentage/CGPA or null>",
-  "degree": "<degree name like B.Tech, BCA, MCA, etc. or null>",
+  "degree": "<highest degree name like B.Tech, BCA, MCA, etc. or null>",
   "stream": "<stream/branch like CSE, IT, ECE, etc. or null>",
   "cgpa": "<college CGPA or percentage or null>",
-  "education": [{"degree": "<degree or null>", "institution": "<college/school/university name or null>", "stream": "<stream/branch or null>", "score": "<CGPA or percentage or null>", "duration": "<years/duration or null>"}],
-  "projects": [{"title": "<name>", "description": "<1-line desc>", "tech_stack": ["<tech>"]}],
-  "skills": ["<skill1>", "<skill2>"],
-  "certifications": [{"name": "<cert>", "issuer": "<org or null>", "year": "<year or null>"}],
-  "achievements": [],
-  "languages": [],
-  "experience": [{"role": "<title>", "company": "<company>", "duration": "<period>", "description": "<brief desc>"}],
-  "suggested_roles": ["<role 1>", "<role 2>", "<role 3>"]
+  "education": [
+    {
+      "degree": "<degree/class, e.g., B.Tech, 12th, 10th>",
+      "institution": null,
+      "stream": "<stream/branch/subjects, e.g. CSE, Science, or null>",
+      "score": "<CGPA or percentage or grades or null>",
+      "duration": "<years/duration or null>"
+    }
+  ],
+  "projects": [
+    {
+      "title": "<project name>",
+      "description": "<complete detailed description/features/achievements>",
+      "tech_stack": ["<tech>"]
+    }
+  ],
+  "skills": {
+    "Programming Languages": ["<skill1>", "<skill2>"],
+    "Frameworks & Libraries": ["<skill3>"],
+    "Databases": ["<skill4>"],
+    "Tools": ["<skill5>"],
+    "Soft Skills": ["<skill6>"]
+  },
+  "certifications": [
+    {
+      "name": "<cert>",
+      "issuer": "<org or null>",
+      "year": "<year or null>"
+    }
+  ],
+  "achievements": ["<achievement1>", "<achievement2>"],
+  "languages": ["<lang1>", "<lang2>"],
+  "experience": [
+    {
+      "role": "<job title>",
+      "company": null,
+      "duration": "<period, e.g. June 2021 - Present>",
+      "description": "<brief description of work done>"
+    }
+  ],
+  "suggested_roles": ["<role 1>", "<role 2>", "<role 3>"],
+  "career_recommendations": [
+    {
+      "role": "<job title>",
+      "match_score": 85,
+      "reason": "<brief explanation of why the candidate fits this role>"
+    }
+  ]
 }`;
+
+function parseExtractedJSON(text) {
+  try {
+    if (!text) return {};
+    let cleaned = text
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
+
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+
+    if (jsonStart === -1 || jsonEnd === -1) {
+      throw new Error('No JSON found in response');
+    }
+
+    cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('Error parsing JSON from Groq response:', e.message);
+    return {};
+  }
+};
 
 /**
  * Extract structured resume data using Groq API
@@ -470,8 +536,15 @@ function mergeExtraction(primary, secondary) {
   for (const key of ['name', 'location', 'professional_summary', 'total_experience', 'tenth_marks', 'twelfth_marks', 'degree', 'stream', 'cgpa']) {
     merged[key] = primary[key] || secondary[key] || null;
   }
-  for (const key of ['phone', 'email', 'education', 'projects', 'skills', 'certifications', 'achievements', 'languages', 'experience', 'suggested_roles']) {
+  for (const key of ['phone', 'email', 'education', 'projects', 'certifications', 'achievements', 'languages', 'experience', 'suggested_roles', 'career_recommendations']) {
     merged[key] = primary[key]?.length ? primary[key] : (secondary[key] || []);
+  }
+  if (primary.skills && typeof primary.skills === 'object' && Object.keys(primary.skills).length > 0) {
+    merged.skills = primary.skills;
+  } else if (secondary.skills && (Array.isArray(secondary.skills) ? secondary.skills.length > 0 : Object.keys(secondary.skills).length > 0)) {
+    merged.skills = secondary.skills;
+  } else {
+    merged.skills = {};
   }
   merged.links = {
     portfolio: primary.links?.portfolio || secondary.links?.portfolio || null,
@@ -482,32 +555,110 @@ function mergeExtraction(primary, secondary) {
   return sanitizeExtraction(merged);
 }
 
-function parseExtractedJSON(text) {
-  let cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  const jsonStart = cleaned.indexOf('{');
-  const jsonEnd = cleaned.lastIndexOf('}');
-  if (jsonStart === -1 || jsonEnd === -1) { console.error('No JSON found in Groq response'); return getEmptyExtraction(); }
-  cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-  try { return sanitizeExtraction(JSON.parse(cleaned)); }
-  catch {
-    try { return sanitizeExtraction(JSON.parse(cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']').replace(/'/g, '"'))); }
-    catch (e2) { console.error('Failed to parse Groq JSON:', e2.message); return getEmptyExtraction(); }
+function categorizeSkills(skills) {
+  const categories = {
+    "Programming Languages": [],
+    "Frameworks & Libraries": [],
+    "Databases": [],
+    "Tools & Platforms": [],
+    "Other Skills": []
+  };
+
+  const skillMapping = {
+    'javascript': 'Programming Languages', 'typescript': 'Programming Languages', 'python': 'Programming Languages',
+    'java': 'Programming Languages', 'c++': 'Programming Languages', 'c#': 'Programming Languages',
+    'php': 'Programming Languages', 'ruby': 'Programming Languages', 'go': 'Programming Languages',
+    'golang': 'Programming Languages', 'rust': 'Programming Languages', 'swift': 'Programming Languages',
+    'kotlin': 'Programming Languages', 'c': 'Programming Languages', 'r': 'Programming Languages',
+    'html': 'Programming Languages', 'css': 'Programming Languages', 'sql': 'Programming Languages',
+
+    'react': 'Frameworks & Libraries', 'react.js': 'Frameworks & Libraries', 'reactjs': 'Frameworks & Libraries',
+    'angular': 'Frameworks & Libraries', 'vue': 'Frameworks & Libraries', 'vue.js': 'Frameworks & Libraries',
+    'vuejs': 'Frameworks & Libraries', 'next.js': 'Frameworks & Libraries', 'nextjs': 'Frameworks & Libraries',
+    'express': 'Frameworks & Libraries', 'express.js': 'Frameworks & Libraries', 'node': 'Frameworks & Libraries',
+    'node.js': 'Frameworks & Libraries', 'nodejs': 'Frameworks & Libraries', 'django': 'Frameworks & Libraries',
+    'flask': 'Frameworks & Libraries', 'spring': 'Frameworks & Libraries', 'spring boot': 'Frameworks & Libraries',
+    'laravel': 'Frameworks & Libraries', 'redux': 'Frameworks & Libraries', 'bootstrap': 'Frameworks & Libraries',
+    'tailwind': 'Frameworks & Libraries', 'tailwindcss': 'Frameworks & Libraries', 'jquery': 'Frameworks & Libraries',
+    'svelte': 'Frameworks & Libraries',
+
+    'mongodb': 'Databases', 'mysql': 'Databases', 'postgresql': 'Databases', 'postgres': 'Databases',
+    'sqlite': 'Databases', 'redis': 'Databases', 'oracle': 'Databases', 'nosql': 'Databases',
+    'firebase': 'Databases', 'mariadb': 'Databases',
+
+    'git': 'Tools & Platforms', 'github': 'Tools & Platforms', 'docker': 'Tools & Platforms',
+    'kubernetes': 'Tools & Platforms', 'aws': 'Tools & Platforms', 'azure': 'Tools & Platforms',
+    'gcp': 'Tools & Platforms', 'jenkins': 'Tools & Platforms', 'jira': 'Tools & Platforms',
+    'figma': 'Tools & Platforms', 'postman': 'Tools & Platforms', 'linux': 'Tools & Platforms',
+    'ansible': 'Tools & Platforms', 'terraform': 'Tools & Platforms', 'heroku': 'Tools & Platforms',
+    'vercel': 'Tools & Platforms', 'netlify': 'Tools & Platforms'
+  };
+
+  if (!Array.isArray(skills)) return categories;
+
+  skills.forEach(skill => {
+    const sLower = skill.toLowerCase().trim();
+    let matched = false;
+    for (const [key, category] of Object.entries(skillMapping)) {
+      if (sLower === key || sLower.includes(key)) {
+        if (!categories[category].includes(skill)) {
+          categories[category].push(skill);
+        }
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      if (!categories["Other Skills"].includes(skill)) {
+        categories["Other Skills"].push(skill);
+      }
+    }
+  });
+
+  for (const key of Object.keys(categories)) {
+    if (categories[key].length === 0) {
+      delete categories[key];
+    }
   }
+
+  return categories;
+}
+
+function cleanSummaryField(value) {
+  const cleaned = cleanScalar(value);
+  if (!cleaned) return null;
+  if (/no\s+professional\s+summary|no\s+summary|not\s+provided|not\s+available|not\s+present|no\s+explicit/i.test(cleaned)) {
+    return null;
+  }
+  return cleaned;
 }
 
 function sanitizeExtraction(data) {
+  let categorizedSkills = {};
+  if (Array.isArray(data.skills)) {
+    categorizedSkills = categorizeSkills(data.skills);
+  } else if (data.skills && typeof data.skills === 'object') {
+    for (const [cat, list] of Object.entries(data.skills)) {
+      if (Array.isArray(list)) {
+        categorizedSkills[cat] = list.map(cleanScalar).filter(Boolean);
+      } else if (typeof list === 'string') {
+        categorizedSkills[cat] = [cleanScalar(list)].filter(Boolean);
+      }
+    }
+  }
+
   return {
-    name: cleanScalar(data.name),
-    phone: cleanArray(data.phone),
-    email: cleanArray(data.email),
-    location: cleanScalar(data.location),
-    professional_summary: cleanScalar(data.professional_summary),
+    name: null,
+    phone: [],
+    email: [],
+    location: null,
+    professional_summary: cleanSummaryField(data.professional_summary),
     total_experience: cleanScalar(data.total_experience),
     links: {
-      portfolio: cleanPortfolioLink(data.links?.portfolio),
-      github: cleanScalar(data.links?.github),
-      linkedin: cleanScalar(data.links?.linkedin),
-      other: cleanArray(data.links?.other).filter((url) => !/github\.com|linkedin\.com/i.test(url)),
+      portfolio: null,
+      github: null,
+      linkedin: null,
+      other: []
     },
     tenth_marks: cleanScalar(data.tenth_marks),
     twelfth_marks: cleanScalar(data.twelfth_marks),
@@ -515,21 +666,28 @@ function sanitizeExtraction(data) {
     stream: cleanScalar(data.stream),
     cgpa: cleanScalar(data.cgpa),
     education: Array.isArray(data.education)
-      ? data.education.map((e) => ({ degree: cleanScalar(e.degree), institution: cleanScalar(e.institution), stream: cleanScalar(e.stream), score: cleanScalar(e.score), duration: cleanScalar(e.duration) })).filter((e) => e.degree || e.institution || e.stream || e.score || e.duration)
+      ? data.education.map((e) => ({ degree: cleanScalar(e.degree), institution: null, stream: cleanScalar(e.stream), score: cleanScalar(e.score), duration: cleanScalar(e.duration) })).filter((e) => e.degree || e.stream || e.score || e.duration)
       : [],
     projects: Array.isArray(data.projects)
       ? data.projects.map((p) => ({ title: cleanScalar(p.title) || 'Untitled Project', description: cleanScalar(p.description) || '', tech_stack: cleanArray(p.tech_stack) })).filter((p) => p.title !== 'Untitled Project' || p.description || p.tech_stack.length)
       : [],
-    skills: cleanArray(data.skills),
+    skills: categorizedSkills,
     certifications: Array.isArray(data.certifications)
       ? data.certifications.map((c) => ({ name: cleanScalar(c.name), issuer: cleanScalar(c.issuer), year: cleanScalar(c.year) })).filter((c) => c.name)
       : [],
     achievements: cleanArray(data.achievements),
     languages: cleanArray(data.languages),
     experience: Array.isArray(data.experience)
-      ? data.experience.map((e) => ({ role: cleanScalar(e.role), company: cleanScalar(e.company) || '', duration: cleanScalar(e.duration) || '', description: cleanScalar(e.description) || '' })).filter((e) => e.role || e.company || e.duration || e.description)
+      ? data.experience.map((e) => ({ role: cleanScalar(e.role), company: null, duration: cleanScalar(e.duration) || '', description: cleanScalar(e.description) || '' })).filter((e) => e.role || e.duration || e.description)
       : [],
     suggested_roles: cleanArray(data.suggested_roles),
+    career_recommendations: Array.isArray(data.career_recommendations)
+      ? data.career_recommendations.map((c) => ({
+          role: cleanScalar(c.role),
+          match_score: typeof c.match_score === 'number' ? c.match_score : (parseInt(c.match_score) || 75),
+          reason: cleanScalar(c.reason) || ''
+        })).filter(c => c.role)
+      : []
   };
 }
 
@@ -562,8 +720,8 @@ function getEmptyExtraction() {
     name: null, phone: [], email: [], location: null, professional_summary: null,
     total_experience: null, links: { portfolio: null, github: null, linkedin: null, other: [] },
     tenth_marks: null, twelfth_marks: null, degree: null, stream: null, cgpa: null,
-    education: [], projects: [], skills: [], certifications: [], achievements: [], languages: [], experience: [],
-    suggested_roles: [],
+    education: [], projects: [], skills: {}, certifications: [], achievements: [], languages: [], experience: [],
+    suggested_roles: [], career_recommendations: []
   };
 }
 

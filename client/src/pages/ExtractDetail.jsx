@@ -21,6 +21,8 @@ import {
   FiTool,
   FiUser,
   FiClock,
+  FiTrendingUp,
+  FiStar,
 } from 'react-icons/fi';
 import './ExtractInfo.css';
 
@@ -117,77 +119,57 @@ export default function ExtractDetail() {
 
         {/* Sections Grid */}
         <div className="extract-grid">
-          {/* Personal Info */}
-          <Card className="extract-section personal extract-fade-in d2">
-            <div className="extract-section-title">
-              <div className="extract-section-icon"><FiUser /></div>
-              Personal Information
-            </div>
-            <div className="personal-info-grid">
-              {data.name && (
-                <div className="personal-info-row">
-                  <FiUser size={14} />
-                  <span className="personal-info-label">Name</span>
-                  <span className="personal-info-value">{data.name}</span>
-                </div>
-              )}
-              {data.phone?.length > 0 && data.phone.map((p, i) => (
-                <div key={i} className="personal-info-row">
-                  <FiPhone size={14} />
-                  <span className="personal-info-label">Phone</span>
-                  <span className="personal-info-value">{p}</span>
-                </div>
-              ))}
-              {data.email?.length > 0 && data.email.map((e, i) => (
-                <div key={i} className="personal-info-row">
-                  <FiMail size={14} />
-                  <span className="personal-info-label">Email</span>
-                  <span className="personal-info-value">
-                    <a href={`mailto:${e}`}>{e}</a>
+          {/* Professional Summary */}
+          {data.professional_summary && (
+            <Card className="extract-section summary-section extract-grid-full extract-fade-in d2">
+              <div className="extract-section-title">
+                <div className="extract-section-icon"><FiFileText /></div>
+                Professional Summary
+              </div>
+              <p className="extract-summary-text">{data.professional_summary}</p>
+            </Card>
+          )}
+
+          {/* Career Recommendations */}
+          {data.career_recommendations?.length > 0 && (
+            <Card className="extract-section roles-section extract-grid-full extract-fade-in d2">
+              <div className="extract-section-title">
+                <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
+                Career Recommendations
+              </div>
+              <div className="result-careers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+                {data.career_recommendations.map((c, i) => (
+                  <div key={i} className="career-item" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="career-info" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingRight: '1rem' }}>
+                      <span className="career-role" style={{ fontWeight: '600', fontSize: '1rem', color: '#fff' }}>{c.role}</span>
+                      <span className="career-reason" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', lineHeight: '1.4' }}>{c.reason}</span>
+                    </div>
+                    <div className="career-match" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)', padding: '0.5rem 0.75rem', borderRadius: '8px', minWidth: '70px' }}>
+                      <span className="career-match-value" style={{ fontWeight: 'bold', color: '#60a5fa', fontSize: '1.1rem' }}>{c.match_score}%</span>
+                      <span className="career-match-label" style={{ fontSize: '0.7rem', color: 'rgba(96,165,250,0.8)', textTransform: 'uppercase' }}>Match</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Suggested Roles */}
+          {data.suggested_roles?.length > 0 && (
+            <Card className="extract-section roles-section extract-grid-full extract-fade-in d2">
+              <div className="extract-section-title">
+                <div className="extract-section-icon"><FiTrendingUp style={{ color: '#60a5fa' }} /></div>
+                Suggested Roles
+              </div>
+              <div className="extract-skills-grid">
+                {data.suggested_roles.map((role, i) => (
+                  <span key={i} className="extract-skill-tag" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.2)' }}>
+                    {role}
                   </span>
-                </div>
-              ))}
-              {data.links?.github && (
-                <div className="personal-info-row">
-                  <FiGithub size={14} />
-                  <span className="personal-info-label">GitHub</span>
-                  <span className="personal-info-value">
-                    <a href={data.links.github} target="_blank" rel="noreferrer">{data.links.github}</a>
-                  </span>
-                </div>
-              )}
-              {data.links?.linkedin && (
-                <div className="personal-info-row">
-                  <FiLinkedin size={14} />
-                  <span className="personal-info-label">LinkedIn</span>
-                  <span className="personal-info-value">
-                    <a href={data.links.linkedin} target="_blank" rel="noreferrer">{data.links.linkedin}</a>
-                  </span>
-                </div>
-              )}
-              {data.links?.portfolio && (
-                <div className="personal-info-row">
-                  <FiGlobe size={14} />
-                  <span className="personal-info-label">Portfolio</span>
-                  <span className="personal-info-value">
-                    <a href={data.links.portfolio} target="_blank" rel="noreferrer">{data.links.portfolio}</a>
-                  </span>
-                </div>
-              )}
-              {data.links?.other?.length > 0 && data.links.other.map((url, i) => (
-                <div key={i} className="personal-info-row">
-                  <FiLink size={14} />
-                  <span className="personal-info-label">Link</span>
-                  <span className="personal-info-value">
-                    <a href={url} target="_blank" rel="noreferrer">{url}</a>
-                  </span>
-                </div>
-              ))}
-              {!data.name && !data.phone?.length && !data.email?.length && (
-                <div className="extract-empty">No personal information found</div>
-              )}
-            </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* Education */}
           <Card className="extract-section education extract-fade-in d3">
@@ -234,19 +216,53 @@ export default function ExtractDetail() {
             <div className="extract-section-title">
               <div className="extract-section-icon"><FiTool /></div>
               Skills
-              {data.skills?.length > 0 && (
-                <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.skills.length} found</Badge>
-              )}
+              {(() => {
+                const totalSkillsCount = data.skills
+                  ? (Array.isArray(data.skills)
+                      ? data.skills.length
+                      : Object.values(data.skills).reduce((acc, curr) => acc + (Array.isArray(curr) ? curr.length : 0), 0))
+                  : 0;
+                return totalSkillsCount > 0 && (
+                  <Badge variant="muted" style={{ marginLeft: 'auto' }}>{totalSkillsCount} found</Badge>
+                );
+              })()}
             </div>
-            {data.skills?.length > 0 ? (
-              <div className="extract-skills-grid">
-                {data.skills.map((skill, i) => (
-                  <span key={i} className="extract-skill-tag">{skill}</span>
-                ))}
-              </div>
-            ) : (
-              <div className="extract-empty">No skills found</div>
-            )}
+            {(() => {
+              const totalSkillsCount = data.skills
+                ? (Array.isArray(data.skills)
+                    ? data.skills.length
+                    : Object.values(data.skills).reduce((acc, curr) => acc + (Array.isArray(curr) ? curr.length : 0), 0))
+                : 0;
+
+              if (totalSkillsCount === 0) {
+                return <div className="extract-empty">No skills found</div>;
+              }
+
+              if (Array.isArray(data.skills)) {
+                return (
+                  <div className="extract-skills-grid">
+                    {data.skills.map((skill, i) => (
+                      <span key={i} className="extract-skill-tag">{skill}</span>
+                    ))}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="extract-skills-categories">
+                  {Object.entries(data.skills).map(([category, skillList]) => (
+                    <div key={category} className="extract-skill-category-group">
+                      <h4 className="skill-category-title">{category}</h4>
+                      <div className="extract-skills-grid">
+                        {Array.isArray(skillList) && skillList.map((skill, i) => (
+                          <span key={i} className="extract-skill-tag">{skill}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </Card>
 
           {/* Certifications */}

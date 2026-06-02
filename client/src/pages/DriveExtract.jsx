@@ -322,96 +322,89 @@ export default function DriveExtract() {
 
             {/* Sections Grid — reuses ExtractInfo.css classes */}
             <div className="extract-grid">
-              <Card className="extract-section summary-section extract-grid-full drive-fade-in d2">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiFileText /></div>
-                  Professional Summary
-                </div>
-                {data.professional_summary ? (
+              {data.professional_summary && (
+                <Card className="extract-section summary-section extract-grid-full drive-fade-in d2">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiFileText /></div>
+                    Professional Summary
+                  </div>
                   <p className="extract-summary-text">{data.professional_summary}</p>
-                ) : (
-                  <div className="extract-empty">No professional summary found</div>
-                )}
-              </Card>
+                </Card>
+              )}
 
-              {/* Personal Info */}
-              <Card className="extract-section personal drive-fade-in d2">
-                <div className="extract-section-title">
-                  <div className="extract-section-icon"><FiUser /></div>
-                  Personal Information
-                </div>
-                <div className="personal-info-grid">
-                  {data.name && (
-                    <div className="personal-info-row">
-                      <FiUser size={14} />
-                      <span className="personal-info-label">Name</span>
-                      <span className="personal-info-value">{data.name}</span>
+              {/* ATS Score & Analysis */}
+              {(data.ats_score !== undefined || data.ats_analysis) && (
+                <Card className="extract-section ats-section extract-grid-full drive-fade-in d2">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiTrendingUp style={{ color: '#10b981' }} /></div>
+                    ATS Score & Analysis
+                  </div>
+                  <div className="ats-analysis-grid">
+                    <div className="ats-score-display">
+                      <div className="ats-score-circle">
+                        <span className="ats-score-num">{data.ats_score || data.ats_analysis?.overall_score || 0}</span>
+                        <span className="ats-score-label">ATS Score</span>
+                      </div>
+                      <div className="ats-privacy-badge">
+                        <span>🔒 Anonymized Report</span>
+                      </div>
+                    </div>
+                    <div className="ats-analysis-details">
+                      {data.ats_analysis?.strengths?.length > 0 && (
+                        <div className="ats-analysis-block">
+                          <h4>Strengths</h4>
+                          <ul className="ats-list strengths-list">
+                            {data.ats_analysis.strengths.map((str, idx) => (
+                              <li key={idx}>{str}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {data.ats_analysis?.weaknesses?.length > 0 && (
+                        <div className="ats-analysis-block">
+                          <h4>Weaknesses / Gaps</h4>
+                          <ul className="ats-list weaknesses-list">
+                            {data.ats_analysis.weaknesses.map((weak, idx) => (
+                              <li key={idx}>{weak}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {data.ats_analysis?.suggestions?.length > 0 && (
+                    <div className="ats-suggestions-block">
+                      <h4>Actionable Suggestions</h4>
+                      <div className="ats-suggestions-grid">
+                        {data.ats_analysis.suggestions.map((sug, idx) => (
+                          <div key={idx} className={`ats-suggestion-card prio-${sug.priority}`}>
+                            <span className="sug-prio">{sug.priority?.toUpperCase()}</span>
+                            <span className="sug-cat">{sug.category}</span>
+                            <p>{sug.text}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {data.phone?.length > 0 && data.phone.map((p, i) => (
-                    <div key={i} className="personal-info-row">
-                      <FiPhone size={14} />
-                      <span className="personal-info-label">Phone</span>
-                      <span className="personal-info-value">{p}</span>
-                    </div>
-                  ))}
-                  {data.email?.length > 0 && data.email.map((e, i) => (
-                    <div key={i} className="personal-info-row">
-                      <FiMail size={14} />
-                      <span className="personal-info-label">Email</span>
-                      <span className="personal-info-value">
-                        <a href={`mailto:${e}`}>{e}</a>
+                </Card>
+              )}
+
+              {/* Suggested Roles */}
+              {data.suggested_roles?.length > 0 && (
+                <Card className="extract-section roles-section extract-grid-full drive-fade-in d2">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiTrendingUp style={{ color: '#60a5fa' }} /></div>
+                    Suggested Roles
+                  </div>
+                  <div className="extract-skills-grid">
+                    {data.suggested_roles.map((role, i) => (
+                      <span key={i} className="extract-skill-tag" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.2)' }}>
+                        {role}
                       </span>
-                    </div>
-                  ))}
-                  {data.location && (
-                    <div className="personal-info-row">
-                      <FiMapPin size={14} />
-                      <span className="personal-info-label">Location</span>
-                      <span className="personal-info-value">{data.location}</span>
-                    </div>
-                  )}
-                  {data.links?.github && (
-                    <div className="personal-info-row">
-                      <FiGithub size={14} />
-                      <span className="personal-info-label">GitHub</span>
-                      <span className="personal-info-value">
-                        <a href={data.links.github} target="_blank" rel="noreferrer">{data.links.github}</a>
-                      </span>
-                    </div>
-                  )}
-                  {data.links?.linkedin && (
-                    <div className="personal-info-row">
-                      <FiLinkedin size={14} />
-                      <span className="personal-info-label">LinkedIn</span>
-                      <span className="personal-info-value">
-                        <a href={data.links.linkedin} target="_blank" rel="noreferrer">{data.links.linkedin}</a>
-                      </span>
-                    </div>
-                  )}
-                  {data.links?.portfolio && (
-                    <div className="personal-info-row">
-                      <FiGlobe size={14} />
-                      <span className="personal-info-label">Portfolio</span>
-                      <span className="personal-info-value">
-                        <a href={data.links.portfolio} target="_blank" rel="noreferrer">{data.links.portfolio}</a>
-                      </span>
-                    </div>
-                  )}
-                  {data.links?.other?.length > 0 && data.links.other.map((url, i) => (
-                    <div key={i} className="personal-info-row">
-                      <FiLink size={14} />
-                      <span className="personal-info-label">Link</span>
-                      <span className="personal-info-value">
-                        <a href={url} target="_blank" rel="noreferrer">{url}</a>
-                      </span>
-                    </div>
-                  ))}
-                  {contactMissing && (
-                    <div className="extract-empty">No personal information found</div>
-                  )}
-                </div>
-              </Card>
+                    ))}
+                  </div>
+                </Card>
+              )}
 
               {/* Education */}
               <Card className="extract-section education drive-fade-in d3">
