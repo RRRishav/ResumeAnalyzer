@@ -4,6 +4,7 @@ import api from '../services/api';
 import ScoreGauge from '../components/ScoreGauge';
 import SkillChart from '../components/SkillChart';
 import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrendingUp, FiStar, FiCalendar, FiFileText } from 'react-icons/fi';
+import { Button } from '../components/ui/button';
 import './ReportDetail.css';
 
 export default function ReportDetail() {
@@ -110,20 +111,13 @@ export default function ReportDetail() {
         {report.career_recommendations?.length > 0 && (
           <div className="report-section glass-card animate-fade-in-up stagger-5">
             <h3><FiStar /> Career Recommendations</h3>
-            <div className="result-careers">
+            <ul style={{ marginTop: '0.75rem', paddingLeft: '1.25rem', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {report.career_recommendations.map((c, i) => (
-                <div key={i} className="career-item">
-                  <div className="career-info">
-                    <span className="career-role">{c.role}</span>
-                    <span className="career-reason">{c.reason}</span>
-                  </div>
-                  <div className="career-match">
-                    <span className="career-match-value">{c.match_score}%</span>
-                    <span className="career-match-label">Match</span>
-                  </div>
-                </div>
+                <li key={i} style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  <strong style={{ color: 'var(--accent-primary)', fontWeight: '600' }}>{c.role}</strong> ({c.match_score}% Match) — {c.reason}
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
 

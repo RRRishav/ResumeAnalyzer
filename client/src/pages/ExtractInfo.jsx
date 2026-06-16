@@ -67,6 +67,7 @@ export default function ExtractInfo() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('beautiful'); // 'beautiful' | 'raw'
+  const [showSuggested, setShowSuggested] = useState(false);
 
   /* ── LLM health (standard mode) ── */
   const [llmStatus, setLlmStatus] = useState('checking');
@@ -183,6 +184,7 @@ export default function ExtractInfo() {
     setProgress({ stage: '', progress: 0, message: '' });
     setOcrStep('');
     setViewMode('beautiful');
+    setShowSuggested(false);
   };
 
   /* ── Derived data ── */
@@ -435,20 +437,13 @@ export default function ExtractInfo() {
                       <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
                       Career Recommendations
                     </div>
-                    <div className="result-careers" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+                    <ul style={{ marginTop: '0.75rem', paddingLeft: '1.25rem', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       {data.career_recommendations.map((c, i) => (
-                        <div key={i} className="career-item" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div className="career-info" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingRight: '1rem' }}>
-                            <span className="career-role" style={{ fontWeight: '600', fontSize: '1rem', color: '#fff' }}>{c.role}</span>
-                            <span className="career-reason" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', lineHeight: '1.4' }}>{c.reason}</span>
-                          </div>
-                          <div className="career-match" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)', padding: '0.5rem 0.75rem', borderRadius: '8px', minWidth: '70px' }}>
-                            <span className="career-match-value" style={{ fontWeight: 'bold', color: '#60a5fa', fontSize: '1.1rem' }}>{c.match_score}%</span>
-                            <span className="career-match-label" style={{ fontSize: '0.7rem', color: 'rgba(96,165,250,0.8)', textTransform: 'uppercase' }}>Match</span>
-                          </div>
-                        </div>
+                        <li key={i} style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.75)', lineHeight: '1.5', display: 'list-item' }}>
+                          <strong style={{ color: '#60a5fa', fontWeight: '600' }}>{c.role}</strong> ({c.match_score}% Match) — {c.reason}
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </Card>
                 )}
 
@@ -458,15 +453,31 @@ export default function ExtractInfo() {
                     <div className="extract-section-title">
                       <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
                       Suggested Job Roles
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        style={{ marginLeft: 'auto' }}
+                        onClick={() => setShowSuggested(!showSuggested)}
+                      >
+                        {showSuggested ? 'Hide' : 'Show'}
+                      </Button>
                     </div>
-                    <p className="extract-summary-text" style={{ marginBottom: '0.85rem', fontSize: '0.9rem' }}>
-                      Based on your skills, experience, and projects — AI-recommended roles:
-                    </p>
-                    <div className="extract-skills-grid">
-                      {data.suggested_roles.map((role, i) => (
-                        <span key={i} className="extract-skill-tag role-tag">{role}</span>
-                      ))}
-                    </div>
+                    {showSuggested ? (
+                      <>
+                        <p className="extract-summary-text" style={{ marginBottom: '0.85rem', fontSize: '0.9rem' }}>
+                          Based on your skills, experience, and projects — AI-recommended roles:
+                        </p>
+                        <div className="extract-skills-grid">
+                          {data.suggested_roles.map((role, i) => (
+                            <span key={i} className="extract-skill-tag role-tag">{role}</span>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
+                        <Button size="sm" onClick={() => setShowSuggested(true)}>Show Suggested Roles</Button>
+                      </div>
+                    )}
                   </Card>
                 )}
 

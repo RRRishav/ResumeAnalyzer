@@ -18,6 +18,10 @@ const Groq = require('groq-sdk');
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
+const MODEL_EXTRACTING = process.env.MODEL_EXTRACTING || GROQ_MODEL;
+const MODEL_RECOMMENDATION = process.env.MODEL_RECOMMENDATION || GROQ_MODEL;
+const MODEL_IMPROVEMENT = process.env.MODEL_IMPROVEMENT || GROQ_MODEL;
+
 const client = new Groq({ apiKey: GROQ_API_KEY });
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -76,7 +80,7 @@ RULES:
 - For projects: extract title, complete detailed description (including all key features, responsibilities, achievements, and metrics where available), and technologies used. Do NOT truncate or summarize details to a single line; extract the project details fully. Do NOT include company/client details if they are identifying.
 - For skills: group the skills into appropriate categories (e.g., "Programming Languages", "Frameworks & Libraries", "Databases", "Tools", "Soft Skills", etc.) as key-value pairs where the key is the category and the value is an array of skills.
 - For certifications: include cert name, issuing organization (if not identifying), and year.
-- For experience: include role, company (set to null if it is identifying, or use generic sector name like "E-commerce Startup"), duration, and brief description.
+- For experience: include role, company (extract the actual company name), duration, and brief description.
 - For suggested_roles: analyze the candidate's skills and experience, and list 2-4 target job roles they are best fit for.
 - For career_recommendations: analyze the candidate's skills and experience, and list 2-4 target job roles along with a match score (0-100) and a brief reason (1 sentence) explaining why they fit the role.
 
@@ -134,7 +138,7 @@ Return this exact JSON structure:
   "experience": [
     {
       "role": "<job title>",
-      "company": null,
+      "company": "<company name>",
       "duration": "<period, e.g. June 2021 - Present>",
       "description": "<brief description of work done>"
     }
@@ -182,10 +186,10 @@ async function extractResumeData(resumeText) {
   const fastExtracted = localExtractResumeData(resumeText);
 
   try {
-    console.log(`☁️  Extracting via Groq Cloud (${GROQ_MODEL})...`);
+    console.log(`☁️  Extracting via Groq Cloud (${MODEL_EXTRACTING})...`);
 
     const response = await client.chat.completions.create({
-      model: GROQ_MODEL,
+      model: MODEL_EXTRACTING,
       messages: [
         { role: 'system', content: EXTRACT_SYSTEM_PROMPT },
         {
@@ -204,7 +208,7 @@ async function extractResumeData(resumeText) {
 
     return {
       ...merged,
-      model_used: GROQ_MODEL,
+      model_used: MODEL_EXTRACTING,
       provider_used: 'groq',
       processing_time_ms: Date.now() - startTime,
     };
@@ -212,7 +216,7 @@ async function extractResumeData(resumeText) {
     console.warn(`Groq extraction failed, using local parser: ${error.message}`);
     return {
       ...fastExtracted,
-      model_used: `${GROQ_MODEL} (local fallback)`,
+      model_used: `${MODEL_EXTRACTING} (local fallback)`,
       provider_used: 'local-fast',
       processing_time_ms: Date.now() - startTime,
     };
@@ -228,9 +232,9 @@ async function extractResumeData(resumeText) {
  */
 async function analyzeWithOllama(resumeText, extractedSkills = []) {
   try {
-    console.log(`☁️  Analyzing resume with Groq Cloud (${GROQ_MODEL})...`);
+    console.log(`☁️  Analyzing resume with Groq Cloud (split: ${MODEL_IMPROVEMENT} / ${MODEL_RECOMMENDATION})...`);
 
-    const analysisPrompt = `You are an expert HR recruiter. Analyze this resume and return ONLY valid JSON (no markdown fences).
+    const analysisPrompt = `You are an expert HR recruiter and resume advisor. Analyze this resume and provide scores, strengths, weaknesses, overall candidate summary, missing skills, keywords to add, and actionable improvement tips (suggestions).
 
 RESUME:
 """
@@ -239,7 +243,7 @@ ${resumeText.substring(0, 8000)}
 
 DETECTED SKILLS: ${extractedSkills.join(', ')}
 
-Return JSON with this exact structure:
+Return ONLY valid JSON matching this exact structure:
 {
   "overall_score": <0-100>,
   "ats_score": <0-100>,
@@ -247,14 +251,39 @@ Return JSON with this exact structure:
   "strengths": ["<str1>","<str2>","<str3>","<str4>","<str5>"],
   "weaknesses": ["<w1>","<w2>","<w3>","<w4>"],
   "suggestions": [{"priority":"high|medium|low","category":"formatting|content|skills|experience","text":"<suggestion>"}],
-  "career_recommendations": [{"role":"<title>","match_score":<0-100>,"reason":"<why>"}],
   "summary": "<2-3 sentence summary>",
   "missing_skills": ["<skill>"],
   "keywords_to_add": ["<keyword>"]
+}
+
+CRITICAL RULES FOR SUGGESTIONS:
+- Each suggestion in the "suggestions" array must be a short, concise, and direct improvement tip (maximum 10-12 words).
+- Keep them action-oriented and bullet-point style (e.g., "Add metrics to quantify achievements in your project section" or "List modern frontend frameworks in skills section").
+- Avoid long-winded paragraphs.`;
+
+    const recommendationPrompt = `You are an expert career counselor and job recommendation engine. Analyze this resume and suggest job matches.
+
+RESUME:
+"""
+${resumeText.substring(0, 8000)}
+"""
+
+DETECTED SKILLS: ${extractedSkills.join(', ')}
+
+Return ONLY valid JSON matching this exact structure:
+{
+  "career_recommendations": [
+    {
+      "role": "<job title>",
+      "match_score": <0-100>,
+      "reason": "<brief 1-sentence explanation of why they fit this role>"
+    }
+  ]
 }`;
 
-    const response = await client.chat.completions.create({
-      model: GROQ_MODEL,
+    // Run both LLM calls concurrently
+    const analysisPromise = client.chat.completions.create({
+      model: MODEL_IMPROVEMENT,
       messages: [
         {
           role: 'system',
@@ -263,34 +292,52 @@ Return JSON with this exact structure:
         { role: 'user', content: analysisPrompt },
       ],
       temperature: 0.2,
-      max_tokens: 1500,
+      max_tokens: 1200,
       response_format: { type: 'json_object' },
     });
 
-    const rawResponse = response.choices?.[0]?.message?.content || '';
+    const recommendationPromise = client.chat.completions.create({
+      model: MODEL_RECOMMENDATION,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert career counselor. Return ONLY valid JSON, no explanation or markdown.',
+        },
+        { role: 'user', content: recommendationPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 800,
+      response_format: { type: 'json_object' },
+    });
 
-    let cleaned = rawResponse
-      .replace(/```json\s*/gi, '')
-      .replace(/```\s*/g, '')
-      .trim();
+    const [analysisResponse, recommendationResponse] = await Promise.all([
+      analysisPromise,
+      recommendationPromise,
+    ]);
 
-    const jsonStart = cleaned.indexOf('{');
-    const jsonEnd = cleaned.lastIndexOf('}');
+    const rawAnalysis = analysisResponse.choices?.[0]?.message?.content || '';
+    const rawRecommendation = recommendationResponse.choices?.[0]?.message?.content || '';
 
-    if (jsonStart === -1 || jsonEnd === -1) {
-      throw new Error('No JSON found in Groq response');
-    }
+    const analysisObj = parseExtractedJSON(rawAnalysis);
+    const recommendationObj = parseExtractedJSON(rawRecommendation);
 
-    cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-    const analysis = JSON.parse(cleaned);
+    // Merge and sanitize
+    const mergedResult = {
+      overall_score: Math.min(100, Math.max(0, parseInt(analysisObj.overall_score) || 50)),
+      ats_score: Math.min(100, Math.max(0, parseInt(analysisObj.ats_score) || 50)),
+      experience_level: analysisObj.experience_level || 'Entry Level',
+      strengths: Array.isArray(analysisObj.strengths) ? analysisObj.strengths : [],
+      weaknesses: Array.isArray(analysisObj.weaknesses) ? analysisObj.weaknesses : [],
+      suggestions: Array.isArray(analysisObj.suggestions) ? analysisObj.suggestions : [],
+      career_recommendations: Array.isArray(recommendationObj.career_recommendations) ? recommendationObj.career_recommendations : [],
+      summary: analysisObj.summary || '',
+      missing_skills: Array.isArray(analysisObj.missing_skills) ? analysisObj.missing_skills : [],
+      keywords_to_add: Array.isArray(analysisObj.keywords_to_add) ? analysisObj.keywords_to_add : [],
+    };
 
-    // Ensure scores are valid numbers between 0-100
-    analysis.overall_score = Math.min(100, Math.max(0, parseInt(analysis.overall_score) || 50));
-    analysis.ats_score = Math.min(100, Math.max(0, parseInt(analysis.ats_score) || 50));
-
-    return analysis;
+    return mergedResult;
   } catch (error) {
-    console.error('Groq analysis error:', error.message);
+    console.error('Groq split analysis error:', error.message);
     return getFallbackAnalysis(resumeText, extractedSkills);
   }
 }
@@ -678,7 +725,7 @@ function sanitizeExtraction(data) {
     achievements: cleanArray(data.achievements),
     languages: cleanArray(data.languages),
     experience: Array.isArray(data.experience)
-      ? data.experience.map((e) => ({ role: cleanScalar(e.role), company: null, duration: cleanScalar(e.duration) || '', description: cleanScalar(e.description) || '' })).filter((e) => e.role || e.duration || e.description)
+      ? data.experience.map((e) => ({ role: cleanScalar(e.role), company: cleanScalar(e.company), duration: cleanScalar(e.duration) || '', description: cleanScalar(e.description) || '' })).filter((e) => e.role || e.duration || e.description)
       : [],
     suggested_roles: cleanArray(data.suggested_roles),
     career_recommendations: Array.isArray(data.career_recommendations)
