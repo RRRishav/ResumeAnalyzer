@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import {
   FiArrowLeft,
   FiAward,
@@ -17,10 +19,13 @@ import {
   FiLink,
   FiLinkedin,
   FiMail,
+  FiMapPin,
   FiPhone,
   FiTool,
   FiUser,
   FiClock,
+  FiTrendingUp,
+  FiStar,
 } from 'react-icons/fi';
 import './ExtractInfo.css';
 
@@ -29,6 +34,7 @@ export default function ExtractDetail() {
   const navigate = useNavigate();
   const [extraction, setExtraction] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSuggested, setShowSuggested] = useState(false);
 
   useEffect(() => {
     loadExtraction();
@@ -117,77 +123,27 @@ export default function ExtractDetail() {
 
         {/* Sections Grid */}
         <div className="extract-grid">
-          {/* Personal Info */}
-          <Card className="extract-section personal extract-fade-in d2">
-            <div className="extract-section-title">
-              <div className="extract-section-icon"><FiUser /></div>
-              Personal Information
-            </div>
-            <div className="personal-info-grid">
-              {data.name && (
-                <div className="personal-info-row">
-                  <FiUser size={14} />
-                  <span className="personal-info-label">Name</span>
-                  <span className="personal-info-value">{data.name}</span>
-                </div>
-              )}
-              {data.phone?.length > 0 && data.phone.map((p, i) => (
-                <div key={i} className="personal-info-row">
-                  <FiPhone size={14} />
-                  <span className="personal-info-label">Phone</span>
-                  <span className="personal-info-value">{p}</span>
-                </div>
-              ))}
-              {data.email?.length > 0 && data.email.map((e, i) => (
-                <div key={i} className="personal-info-row">
-                  <FiMail size={14} />
-                  <span className="personal-info-label">Email</span>
-                  <span className="personal-info-value">
-                    <a href={`mailto:${e}`}>{e}</a>
-                  </span>
-                </div>
-              ))}
-              {data.links?.github && (
-                <div className="personal-info-row">
-                  <FiGithub size={14} />
-                  <span className="personal-info-label">GitHub</span>
-                  <span className="personal-info-value">
-                    <a href={data.links.github} target="_blank" rel="noreferrer">{data.links.github}</a>
-                  </span>
-                </div>
-              )}
-              {data.links?.linkedin && (
-                <div className="personal-info-row">
-                  <FiLinkedin size={14} />
-                  <span className="personal-info-label">LinkedIn</span>
-                  <span className="personal-info-value">
-                    <a href={data.links.linkedin} target="_blank" rel="noreferrer">{data.links.linkedin}</a>
-                  </span>
-                </div>
-              )}
-              {data.links?.portfolio && (
-                <div className="personal-info-row">
-                  <FiGlobe size={14} />
-                  <span className="personal-info-label">Portfolio</span>
-                  <span className="personal-info-value">
-                    <a href={data.links.portfolio} target="_blank" rel="noreferrer">{data.links.portfolio}</a>
-                  </span>
-                </div>
-              )}
-              {data.links?.other?.length > 0 && data.links.other.map((url, i) => (
-                <div key={i} className="personal-info-row">
-                  <FiLink size={14} />
-                  <span className="personal-info-label">Link</span>
-                  <span className="personal-info-value">
-                    <a href={url} target="_blank" rel="noreferrer">{url}</a>
-                  </span>
-                </div>
-              ))}
-              {!data.name && !data.phone?.length && !data.email?.length && (
-                <div className="extract-empty">No personal information found</div>
-              )}
-            </div>
-          </Card>
+          {/* Professional Summary */}
+          {data.professional_summary && (
+            <Card className="extract-section summary-section extract-grid-full extract-fade-in d2">
+              <div className="extract-section-title">
+                <div className="extract-section-icon"><FiFileText /></div>
+                Professional Summary
+              </div>
+              <p className="extract-summary-text">{data.professional_summary}</p>
+            </Card>
+          )}
+
+          <CareerRecommendationsSection
+            recommendations={data.career_recommendations}
+            fallbackRoles={data.suggested_roles}
+          />
+
+          <SuggestedRolesSection
+            roles={data.suggested_roles}
+            show={showSuggested}
+            onToggle={() => setShowSuggested(!showSuggested)}
+          />
 
           {/* Education */}
           <Card className="extract-section education extract-fade-in d3">
@@ -234,19 +190,53 @@ export default function ExtractDetail() {
             <div className="extract-section-title">
               <div className="extract-section-icon"><FiTool /></div>
               Skills
-              {data.skills?.length > 0 && (
-                <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.skills.length} found</Badge>
-              )}
+              {(() => {
+                const totalSkillsCount = data.skills
+                  ? (Array.isArray(data.skills)
+                      ? data.skills.length
+                      : Object.values(data.skills).reduce((acc, curr) => acc + (Array.isArray(curr) ? curr.length : 0), 0))
+                  : 0;
+                return totalSkillsCount > 0 && (
+                  <Badge variant="muted" style={{ marginLeft: 'auto' }}>{totalSkillsCount} found</Badge>
+                );
+              })()}
             </div>
-            {data.skills?.length > 0 ? (
-              <div className="extract-skills-grid">
-                {data.skills.map((skill, i) => (
-                  <span key={i} className="extract-skill-tag">{skill}</span>
-                ))}
-              </div>
-            ) : (
-              <div className="extract-empty">No skills found</div>
-            )}
+            {(() => {
+              const totalSkillsCount = data.skills
+                ? (Array.isArray(data.skills)
+                    ? data.skills.length
+                    : Object.values(data.skills).reduce((acc, curr) => acc + (Array.isArray(curr) ? curr.length : 0), 0))
+                : 0;
+
+              if (totalSkillsCount === 0) {
+                return <div className="extract-empty">No skills found</div>;
+              }
+
+              if (Array.isArray(data.skills)) {
+                return (
+                  <div className="extract-skills-grid">
+                    {data.skills.map((skill, i) => (
+                      <span key={i} className="extract-skill-tag">{skill}</span>
+                    ))}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="extract-skills-categories">
+                  {Object.entries(data.skills).map(([category, skillList]) => (
+                    <div key={category} className="extract-skill-category-group">
+                      <h4 className="skill-category-title">{category}</h4>
+                      <div className="extract-skills-grid">
+                        {Array.isArray(skillList) && skillList.map((skill, i) => (
+                          <span key={i} className="extract-skill-tag">{skill}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </Card>
 
           {/* Certifications */}

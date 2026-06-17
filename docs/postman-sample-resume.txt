@@ -1,0 +1,25 @@
+Rishav Sharma
+Email: rishav.test@example.com
+Phone: +91 9876543210
+LinkedIn: https://linkedin.com/in/rishavtest
+GitHub: https://github.com/rishavtest
+
+Professional Summary
+Full Stack Developer with 2 years of experience building responsive web applications and REST APIs using React, Node.js, Express, MongoDB, and JavaScript.
+
+Skills
+JavaScript, React, Node.js, Express, MongoDB, REST API, HTML, CSS, Tailwind, Git, Docker, Vite, Socket.io
+
+Experience
+Junior Full Stack Developer - Demo Tech - Jan 2024 - Present
+Built resume analysis dashboards, authentication flows, protected API routes, and MongoDB-backed report history. Improved API response consistency and frontend usability.
+
+Projects
+Resume Analyzer - AI-powered resume scoring and data extraction platform. Tech stack: React, Node.js, Express, MongoDB, Ollama, Socket.io.
+Portfolio Website - Responsive portfolio built using React and Tailwind.
+
+Education
+B.Tech Computer Science, CGPA 8.4
+
+Certifications
+Full Stack Web Development Certificate - 2024

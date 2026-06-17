@@ -1,0 +1,210 @@
+.dataset-report .container::before {
+  display: none;
+}
+
+.dataset-report {
+  color: #e8eaed;
+}
+
+.dataset-report-hero,
+.dataset-score-card,
+.dataset-summary-card,
+.dataset-skills-card,
+.dataset-info-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.86);
+  box-shadow: 0 14px 38px rgba(2, 6, 23, 0.34);
+}
+
+.dataset-report-hero {
+  padding: 28px;
+  margin-bottom: 18px;
+  background:
+    linear-gradient(135deg, rgba(66, 133, 244, 0.12), rgba(52, 168, 83, 0.06)),
+    rgba(15, 23, 42, 0.9);
+}
+
+.dataset-report-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #8ab4f8;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dataset-report-hero h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.05;
+  font-weight: 850;
+}
+
+.dataset-report-hero p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  color: #bdc7d4;
+  font-size: 0.96rem;
+}
+
+.dataset-report-hero p span {
+  color: #64748b;
+}
+
+.dataset-score-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(220px, 0.8fr) minmax(280px, 1.4fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dataset-score-card {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.dataset-summary-card {
+  padding: 24px;
+}
+
+.dataset-summary-card h3,
+.dataset-section-heading h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.dataset-summary-card p,
+.dataset-section-heading p {
+  margin-top: 10px;
+  color: #b7c3d0;
+  line-height: 1.65;
+}
+
+.dataset-skills-card {
+  padding: 24px;
+  margin-bottom: 18px;
+}
+
+.dataset-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dataset-section-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dataset-section-heading > span {
+  flex-shrink: 0;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: #1a73e8;
+  background: #d2e3fc;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.dataset-skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dataset-skill-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 13px;
+  border: 1px solid rgba(138, 180, 248, 0.24);
+  border-radius: 999px;
+  color: #d8e6ff;
+  background: rgba(66, 133, 244, 0.12);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.dataset-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dataset-info-card {
+  min-width: 0;
+  padding: 18px;
+}
+
+.dataset-info-card-wide {
+  grid-column: span 2;
+}
+
+.dataset-info-card span {
+  display: block;
+  margin-bottom: 8px;
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dataset-info-card strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1024px) {
+  .dataset-score-grid,
+  .dataset-profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dataset-summary-card,
+  .dataset-info-card-wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .dataset-report-hero,
+  .dataset-skills-card,
+  .dataset-summary-card,
+  .dataset-info-card {
+    border-radius: 14px;
+  }
+
+  .dataset-report-hero,
+  .dataset-skills-card {
+    padding: 18px;
+  }
+
+  .dataset-score-grid,
+  .dataset-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dataset-summary-card,
+  .dataset-info-card-wide {
+    grid-column: auto;
+  }
+}

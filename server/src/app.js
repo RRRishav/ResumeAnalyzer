@@ -6,7 +6,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const { mongoose, initDB } = require('./config/db');
-const { checkOllamaHealth } = require('./services/ollamaService');
+const { checkOllamaHealth } = require('./services/groqService');
 
 const authRoutes = require('./routes/authRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
@@ -15,7 +15,6 @@ const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 const server = http.createServer(app);
-
 const configuredOrigins = process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173';
 const allowedOrigins = configuredOrigins
   .split(',')

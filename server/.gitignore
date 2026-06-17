@@ -3,7 +3,7 @@
 node_modules/
 
 # Logs
-
+.env
 logs
 *.log
 npm-debug.log*
@@ -11,7 +11,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment variables
-
+# .gitignore
+node_modules/
+.env
 .env
 .env.*
 !.env.example

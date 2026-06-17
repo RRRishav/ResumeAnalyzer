@@ -1,20 +1,28 @@
+/* ========================================
+   Analyzer - NVIDIA Style
+   ======================================== */
+
 .analyzer {
-  padding: var(--space-2xl) 0 var(--space-4xl);
+  padding: 3rem 2rem 4rem;
+  min-height: calc(100vh - 200px);
 }
 
 .analyzer-header {
   text-align: center;
-  margin-bottom: var(--space-2xl);
+  margin-bottom: 3rem;
+  animation: fadeInDown 0.6s ease-out;
 }
 
 .analyzer-header h1 {
-  font-size: var(--font-size-3xl);
+  font-size: 2.25rem;
   font-weight: 800;
+  color: white;
+  margin-bottom: 0.5rem;
 }
 
 .analyzer-header p {
-  color: var(--text-secondary);
-  margin-top: var(--space-sm);
+  color: #cbd5e1;
+  font-size: 1.0625rem;
 }
 
 .analyzer-upload-section {
@@ -22,60 +30,157 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 1.5rem;
 }
 
-.analyzer-options { width: 100%; }
+.analyzer-options {
+  width: 100%;
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
 
 .analyzer-textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 120px;
+  padding: 1rem;
+  background: rgba(248, 248, 248, 0.05);
+  border: 1px solid rgba(248, 248, 248, 0.1);
+  border-radius: 0.5rem;
+  color: #e5e7eb;
+  font-family: inherit;
+  transition: all 0.25s ease;
+}
+
+.analyzer-textarea:focus {
+  outline: none;
+  background: rgba(248, 248, 248, 0.08);
+  border-color: #76b900;
+  box-shadow: 0 0 12px rgba(118, 185, 0, 0.2);
 }
 
 .analyzer-error {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  background: rgba(239, 83, 80, 0.1);
-  border: 1px solid rgba(239, 83, 80, 0.2);
-  border-radius: var(--radius-md);
-  color: var(--accent-danger);
-  font-size: var(--font-size-sm);
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 0.5rem;
+  color: #fca5a5;
+  font-size: 0.875rem;
   flex-wrap: wrap;
 }
 
 .analyzer-submit {
   width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #76b900 0%, #4a6b00 100%);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 16px rgba(118, 185, 0, 0.3);
+}
+
+.analyzer-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px rgba(118, 185, 0, 0.5);
+}
+
+.analyzer-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Results */
 .analyzer-results {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .result-scores {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
 }
 
 .result-score-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl);
+  padding: 2rem 1.5rem;
+  background: rgba(31, 41, 55, 0.6);
+  border: 1px solid rgba(248, 248, 248, 0.1);
+  border-radius: 0.875rem;
+  transition: all 0.3s ease;
 }
 
-.result-score-card:hover { transform: none; }
+.result-score-card:hover {
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(118, 185, 0, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 0 20px rgba(118, 185, 0, 0.15);
+}
 
 .result-meta {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-xl);
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(31, 41, 55, 0.4);
+  border: 1px solid rgba(248, 248, 248, 0.1);
+  border-radius: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .analyzer {
+    padding: 2rem 1.5rem 3rem;
+  }
+
+  .analyzer-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .analyzer-header p {
+    font-size: 0.9375rem;
+  }
+
+  .result-scores {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .analyzer {
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .analyzer-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .analyzer-upload-section {
+    gap: 1rem;
+  }
+
+  .analyzer-options {
+    gap: 0.5rem;
+  }
+
+  .analyzer-textarea {
+    min-height: 100px;
+  }
 }
 
 .result-meta:hover { transform: none; }

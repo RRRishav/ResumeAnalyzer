@@ -1,0 +1,600 @@
+import { useState, useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
+import { useNavigate } from 'react-router-dom';
+import {
+  FiAlertTriangle,
+  FiAward,
+  FiBookOpen,
+  FiBriefcase,
+  FiCheckCircle,
+  FiCloud,
+  FiCode,
+  FiDatabase,
+  FiExternalLink,
+  FiFileText,
+  FiGithub,
+  FiGlobe,
+  FiInfo,
+  FiLink,
+  FiLinkedin,
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiRefreshCcw,
+  FiSend,
+  FiServer,
+  FiTool,
+  FiTrendingUp,
+  FiUser,
+  FiArrowRight,
+  FiClock,
+} from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
+import api from '../services/api';
+import ProgressBar from '../components/ProgressBar';
+import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import './DriveExtract.css';
+import './ExtractInfo.css'; // reuse extract result section styles
+
+const PRODUCTION_SOCKET_URL = 'https://resume-analyzer-api-12if.onrender.com';
+
+const getSocketURL = () => {
+  if (import.meta.env.DEV) {
+    return import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+  }
+  return import.meta.env.VITE_SOCKET_URL || PRODUCTION_SOCKET_URL;
+};
+
+// Validate Google Drive URL patterns
+const DRIVE_URL_REGEX = /drive\.google\.com\/(file\/d\/|open\?id=|uc\?)|docs\.google\.com\/(document|spreadsheets)\/d\//i;
+
+export default function DriveExtract() {
+  const { refreshUser } = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [driveLink, setDriveLink] = useState('');
+  const [linkValid, setLinkValid] = useState(null); // null | true | false
+  const [extracting, setExtracting] = useState(false);
+  const [progress, setProgress] = useState({ stage: '', progress: 0, message: '' });
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const [showSuggested, setShowSuggested] = useState(false);
+  const [llmStatus, setLlmStatus] = useState('checking');
+  const [llmModel, setLlmModel] = useState('');
+  const [llmProvider, setLlmProvider] = useState('');
+  const socketRef = useRef(null);
+
+  // Check LLM health on mount
+  useEffect(() => {
+    checkLLM();
+  }, []);
+
+  // Socket.io setup
+  useEffect(() => {
+    const socket = io(getSocketURL(), {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 3,
+      timeout: 8000,
+    });
+    socketRef.current = socket;
+
+    socket.on('extract_progress', (data) => {
+      setProgress(data);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  const checkLLM = async () => {
+    setLlmStatus('checking');
+    try {
+      const res = await api.get('/extract/health');
+      if (res.data.healthy) {
+        setLlmStatus('online');
+        setLlmModel(res.data.model || '');
+        setLlmProvider(res.data.provider || '');
+      } else {
+        setLlmStatus('offline');
+      }
+    } catch {
+      setLlmStatus('offline');
+    }
+  };
+
+  const handleLinkChange = (e) => {
+    const val = e.target.value;
+    setDriveLink(val);
+    setError('');
+    if (!val.trim()) {
+      setLinkValid(null);
+    } else if (DRIVE_URL_REGEX.test(val)) {
+      setLinkValid(true);
+    } else {
+      setLinkValid(false);
+    }
+  };
+
+  const handleExtract = async () => {
+    if (!driveLink.trim() || linkValid === false) return;
+    setError('');
+    setResult(null);
+    setExtracting(true);
+    setProgress({ stage: 'downloading', progress: 3, message: 'Starting extraction from Drive...' });
+    toast.info('Downloading resume from Google Drive...', 3000);
+
+    try {
+      const res = await api.post('/extract/drive', { driveLink: driveLink.trim() }, {
+        headers: {
+          'x-socket-id': socketRef.current?.id || '',
+        },
+        timeout: 180000,
+      });
+
+      setResult(res.data.extraction);
+      setProgress({ stage: 'complete', progress: 100, message: 'Extraction complete!' });
+      refreshUser();
+      toast.success(`Extraction complete via ${res.data.extraction?.provider_used || 'AI'}`, 5000);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Drive extraction failed. Make sure the link is publicly shared.';
+      setError(msg);
+      setProgress({ stage: '', progress: 0, message: '' });
+      toast.error(msg, 6000);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setDriveLink('');
+    setLinkValid(null);
+    setResult(null);
+    setError('');
+    setShowSuggested(false);
+    setProgress({ stage: '', progress: 0, message: '' });
+  };
+
+  const data = result?.extracted_data || {};
+  const educationItems = data.education?.length
+    ? data.education
+    : (data.degree || data.stream || data.cgpa || data.tenth_marks || data.twelfth_marks)
+      ? [{
+          degree: data.degree || 'Education',
+          institution: null,
+          stream: data.stream,
+          score: data.cgpa,
+          duration: null,
+        }]
+      : [];
+  const contactMissing = !data.name && !data.location && !data.phone?.length && !data.email?.length
+    && !data.links?.github && !data.links?.linkedin && !data.links?.portfolio;
+
+  const formatTime = (ms) => {
+    if (!ms) return '—';
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  const isCloud = llmProvider?.toLowerCase().includes('groq') || llmProvider?.toLowerCase().includes('cloud');
+  const providerIcon = isCloud ? <FiCloud size={13} /> : <FiServer size={13} />;
+  const providerLabel = llmProvider || (isCloud ? 'Groq Cloud' : 'Ollama Local');
+  const resultProviderLabel = result?.provider_used === 'local-fast'
+    ? 'Local Fast Parser'
+    : (result?.provider_used === 'groq' ? 'Groq Cloud' : 'Ollama Local');
+  const resultProviderShort = result?.provider_used === 'local-fast'
+    ? 'Local Parser'
+    : (result?.provider_used === 'groq' ? 'Groq' : 'Ollama');
+
+  return (
+    <div className="drive-extract-page">
+      <div className="container">
+        {/* Header */}
+        <div className="drive-header animate-fade-in-up">
+          <div className="drive-header-row">
+            <Badge variant="default"><FiLink /> Drive Extract</Badge>
+            <div className={`ollama-status ${llmStatus}`}>
+              <span className="ollama-status-dot" />
+              {llmStatus === 'checking' && 'Checking LLM...'}
+              {llmStatus === 'online' && (
+                <span className="flex items-center gap-1.5">
+                  {providerIcon} {providerLabel}{llmModel ? ` · ${llmModel}` : ''}
+                </span>
+              )}
+              {llmStatus === 'offline' && 'LLM Offline'}
+            </div>
+          </div>
+          <div className="drive-icon-pulse">
+            <FiExternalLink size={22} style={{ color: '#06b6d4' }} />
+          </div>
+          <h1>Extract from <span className="text-gradient">Google Drive</span></h1>
+          <p>Paste a public Google Drive link to your resume and let AI extract all the important details instantly.</p>
+        </div>
+
+        {/* Input / Results */}
+        {!result ? (
+          <Card className="drive-input-section animate-fade-in-up stagger-1">
+            {/* Drive Link Input */}
+            <div className="drive-input-wrapper">
+              <FiLink className="drive-input-icon" size={16} />
+              <input
+                type="url"
+                className={`drive-link-input ${linkValid === true ? 'valid' : ''} ${linkValid === false ? 'invalid' : ''}`}
+                placeholder="https://drive.google.com/file/d/... or paste any Drive share link"
+                value={driveLink}
+                onChange={handleLinkChange}
+                disabled={extracting}
+                onKeyDown={(e) => e.key === 'Enter' && handleExtract()}
+                autoFocus
+              />
+            </div>
+
+            {linkValid === false && driveLink.trim() && (
+              <div className="drive-validation-msg error">
+                <FiAlertTriangle size={13} /> This doesn't look like a valid Google Drive link
+              </div>
+            )}
+            {linkValid === true && (
+              <div className="drive-validation-msg success">
+                <FiCheckCircle size={13} /> Valid Google Drive link detected
+              </div>
+            )}
+
+            <div className="drive-input-hint">
+              <FiInfo size={14} />
+              <span>
+                The file must be <strong>publicly shared</strong> (Anyone with the link can view).
+                Supported formats: PDF, DOCX, TXT.
+              </span>
+            </div>
+
+            {error && (
+              <div className="drive-error animate-fade-in">
+                <FiAlertTriangle /> {error}
+              </div>
+            )}
+
+            {extracting ? (
+              <ProgressBar stage={progress.stage} progress={progress.progress} message={progress.message} />
+            ) : (
+              <Button
+                size="lg"
+                className="drive-submit"
+                onClick={handleExtract}
+                disabled={!driveLink.trim() || linkValid === false || extracting || llmStatus === 'offline'}
+              >
+                <FiSend /> Extract from Drive
+              </Button>
+            )}
+
+            {llmStatus === 'offline' && (
+              <div className="drive-error" style={{ marginTop: '0.75rem' }}>
+                <FiAlertTriangle />
+                LLM service is unavailable. The server may still be starting up — please retry in a moment.
+                <Button size="sm" variant="outline" onClick={checkLLM} style={{ marginLeft: 'auto' }}>
+                  <FiRefreshCcw size={14} /> Retry
+                </Button>
+              </div>
+            )}
+          </Card>
+        ) : (
+          <div className="extract-results">
+            {/* Result Hero */}
+            <Card className="extract-result-hero drive-fade-in d1">
+              <div>
+                <Badge variant="success"><FiCheckCircle /> Extraction Complete</Badge>
+                <h2>{data.name || result.filename}</h2>
+                <p>Extracted from Google Drive using <strong>{resultProviderLabel}</strong> · {result.model_used}</p>
+                <div className="extract-result-actions">
+                  <Button onClick={handleReset}><FiRefreshCcw /> Extract Another</Button>
+                  <Button variant="outline" onClick={() => navigate(`/extract-detail/${result.id}`)}>
+                    Full View <FiArrowRight />
+                  </Button>
+                </div>
+              </div>
+              <div className="extract-result-meta">
+                <div className="extract-meta-item">
+                  <span>Provider</span>
+                  <strong className="flex items-center gap-1">
+                    {result.provider_used === 'groq' ? <FiCloud size={13} /> : <FiServer size={13} />}
+                    {resultProviderShort}
+                  </strong>
+                </div>
+                <div className="extract-meta-item">
+                  <span>Model</span>
+                  <strong>{result.model_used}</strong>
+                </div>
+                <div className="extract-meta-item">
+                  <span>Time</span>
+                  <strong>{formatTime(result.processing_time_ms)}</strong>
+                </div>
+                <div className="extract-meta-item">
+                  <span>Words</span>
+                  <strong>{result.word_count}</strong>
+                </div>
+                <div className="extract-meta-item">
+                  <span>Experience</span>
+                  <strong>{data.total_experience || 'N/A'}</strong>
+                </div>
+              </div>
+            </Card>
+
+            {/* Sections Grid — reuses ExtractInfo.css classes */}
+            <div className="extract-grid">
+              {data.professional_summary && (
+                <Card className="extract-section summary-section extract-grid-full drive-fade-in d2">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiFileText /></div>
+                    Professional Summary
+                  </div>
+                  <p className="extract-summary-text">{data.professional_summary}</p>
+                </Card>
+              )}
+
+              {/* ATS Score & Analysis */}
+              {(data.ats_score !== undefined || data.ats_analysis) && (
+                <Card className="extract-section ats-section extract-grid-full drive-fade-in d2">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiTrendingUp style={{ color: '#10b981' }} /></div>
+                    ATS Score & Analysis
+                  </div>
+                  <div className="ats-analysis-grid">
+                    <div className="ats-score-display">
+                      <div className="ats-score-circle">
+                        <span className="ats-score-num">{data.ats_score || data.ats_analysis?.overall_score || 0}</span>
+                        <span className="ats-score-label">ATS Score</span>
+                      </div>
+                      <div className="ats-privacy-badge">
+                        <span>🔒 Anonymized Report</span>
+                      </div>
+                    </div>
+                    <div className="ats-analysis-details">
+                      {data.ats_analysis?.strengths?.length > 0 && (
+                        <div className="ats-analysis-block">
+                          <h4>Strengths</h4>
+                          <ul className="ats-list strengths-list">
+                            {data.ats_analysis.strengths.map((str, idx) => (
+                              <li key={idx}>{str}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {data.ats_analysis?.weaknesses?.length > 0 && (
+                        <div className="ats-analysis-block">
+                          <h4>Weaknesses / Gaps</h4>
+                          <ul className="ats-list weaknesses-list">
+                            {data.ats_analysis.weaknesses.map((weak, idx) => (
+                              <li key={idx}>{weak}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {data.ats_analysis?.suggestions?.length > 0 && (
+                    <div className="ats-suggestions-block">
+                      <h4>Actionable Suggestions</h4>
+                      <div className="ats-suggestions-grid">
+                        {data.ats_analysis.suggestions.map((sug, idx) => (
+                          <div key={idx} className={`ats-suggestion-card prio-${sug.priority}`}>
+                            <span className="sug-prio">{sug.priority?.toUpperCase()}</span>
+                            <span className="sug-cat">{sug.category}</span>
+                            <p>{sug.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              <CareerRecommendationsSection
+                recommendations={data.career_recommendations}
+                fallbackRoles={data.suggested_roles}
+                animationClass="drive-fade-in d2"
+              />
+
+              <SuggestedRolesSection
+                roles={data.suggested_roles}
+                show={showSuggested}
+                onToggle={() => setShowSuggested(!showSuggested)}
+                animationClass="drive-fade-in d2"
+              />
+
+              {/* Education */}
+              <Card className="extract-section education drive-fade-in d3">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiBookOpen /></div>
+                  Education
+                </div>
+                {educationItems.length > 0 ? (
+                  <div className="extract-timeline">
+                    {educationItems.map((edu, i) => (
+                      <div key={i} className="extract-timeline-card">
+                        <div className="extract-timeline-title">{edu.degree || 'Education'}</div>
+                        {edu.institution && <div className="extract-timeline-subtitle">{edu.institution}</div>}
+                        <div className="extract-mini-tags">
+                          {edu.stream && <span>{edu.stream}</span>}
+                          {edu.score && <span>{edu.score}</span>}
+                          {edu.duration && <span>{edu.duration}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="extract-empty">No education details found</div>
+                )}
+                <div className="education-grid education-score-grid">
+                  <div className="education-item">
+                    <div className="education-item-label">10th Marks</div>
+                    <div className={`education-item-value ${!data.tenth_marks ? 'empty' : ''}`}>
+                      {data.tenth_marks || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="education-item">
+                    <div className="education-item-label">12th Marks</div>
+                    <div className={`education-item-value ${!data.twelfth_marks ? 'empty' : ''}`}>
+                      {data.twelfth_marks || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="education-item">
+                    <div className="education-item-label">Degree</div>
+                    <div className={`education-item-value ${!data.degree ? 'empty' : ''}`}>
+                      {data.degree || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="education-item">
+                    <div className="education-item-label">Stream</div>
+                    <div className={`education-item-value ${!data.stream ? 'empty' : ''}`}>
+                      {data.stream || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="education-item">
+                    <div className="education-item-label">CGPA</div>
+                    <div className={`education-item-value ${!data.cgpa ? 'empty' : ''}`}>
+                      {data.cgpa || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Skills */}
+              <Card className="extract-section skills-section drive-fade-in d4">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiTool /></div>
+                  Skills
+                  {data.skills?.length > 0 && (
+                    <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.skills.length} found</Badge>
+                  )}
+                </div>
+                {data.skills?.length > 0 ? (
+                  <div className="extract-skills-grid">
+                    {data.skills.map((skill, i) => (
+                      <span key={i} className="extract-skill-tag">{skill}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="extract-empty">No skills found</div>
+                )}
+              </Card>
+
+              {/* Certifications */}
+              <Card className="extract-section certs-section drive-fade-in d5">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiAward /></div>
+                  Certifications
+                </div>
+                {data.certifications?.length > 0 ? (
+                  data.certifications.map((cert, i) => (
+                    <div key={i} className="extract-cert-card">
+                      <div className="extract-cert-icon"><FiAward size={16} /></div>
+                      <div className="extract-cert-info">
+                        <div className="extract-cert-name">{cert.name}</div>
+                        <div className="extract-cert-meta">
+                          {cert.issuer && <span>{cert.issuer}</span>}
+                          {cert.issuer && cert.year && <span> · </span>}
+                          {cert.year && <span>{cert.year}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="extract-empty">No certifications found</div>
+                )}
+              </Card>
+
+              <Card className="extract-section achievements-section drive-fade-in d6">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiTrendingUp /></div>
+                  Achievements
+                </div>
+                {data.achievements?.length > 0 ? (
+                  <ul className="extract-bullet-list">
+                    {data.achievements.map((item, i) => <li key={i}>{item}</li>)}
+                  </ul>
+                ) : (
+                  <div className="extract-empty">No achievements found</div>
+                )}
+              </Card>
+
+              <Card className="extract-section languages-section drive-fade-in d6">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiGlobe /></div>
+                  Languages
+                </div>
+                {data.languages?.length > 0 ? (
+                  <div className="extract-skills-grid">
+                    {data.languages.map((language, i) => (
+                      <span key={i} className="extract-language-tag">{language}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="extract-empty">No languages found</div>
+                )}
+              </Card>
+
+              {/* Projects */}
+              <Card className="extract-section projects-section extract-grid-full drive-fade-in d6">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiCode /></div>
+                  Projects
+                  {data.projects?.length > 0 && (
+                    <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.projects.length} projects</Badge>
+                  )}
+                </div>
+                {data.projects?.length > 0 ? (
+                  data.projects.map((project, i) => (
+                    <div key={i} className="extract-project-card">
+                      <div className="extract-project-title">{project.title}</div>
+                      {project.description && (
+                        <div className="extract-project-desc">{project.description}</div>
+                      )}
+                      {project.tech_stack?.length > 0 && (
+                        <div className="extract-project-tech">
+                          {project.tech_stack.map((tech, j) => (
+                            <span key={j}>{tech}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="extract-empty">No projects found</div>
+                )}
+              </Card>
+
+              {/* Experience */}
+              <Card className="extract-section experience-section extract-grid-full drive-fade-in d7">
+                <div className="extract-section-title">
+                  <div className="extract-section-icon"><FiBriefcase /></div>
+                  Work Experience
+                  {data.total_experience && (
+                    <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.total_experience}</Badge>
+                  )}
+                </div>
+                {data.experience?.length > 0 ? (
+                  <div className="extract-exp-timeline">
+                    {data.experience.map((exp, i) => (
+                      <div key={i} className="extract-exp-item">
+                        <div className="extract-exp-role">{exp.role}</div>
+                        {exp.company && <div className="extract-exp-company">{exp.company}</div>}
+                        {exp.duration && <div className="extract-exp-duration">{exp.duration}</div>}
+                        {exp.description && <div className="extract-exp-desc">{exp.description}</div>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="extract-empty">No work experience found</div>
+                )}
+              </Card>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

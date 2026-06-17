@@ -39,7 +39,7 @@ const extractionSchema = new mongoose.Schema(
           tech_stack: { type: [String], default: [] },
         },
       ],
-      skills: { type: [String], default: [] },
+      skills: { type: mongoose.Schema.Types.Mixed, default: {} },
       certifications: [
         {
           name: { type: String },
@@ -57,6 +57,21 @@ const extractionSchema = new mongoose.Schema(
           description: { type: String },
         },
       ],
+      suggested_roles: { type: [String], default: [] },
+      career_recommendations: [
+        {
+          role: { type: String },
+          match_score: { type: Number },
+          reason: { type: String },
+        },
+      ],
+      ats_score: { type: Number, default: null },
+      ats_analysis: {
+        overall_score: { type: Number, default: null },
+        strengths: { type: [String], default: [] },
+        weaknesses: { type: [String], default: [] },
+        suggestions: { type: [mongoose.Schema.Types.Mixed], default: [] },
+      },
     },
     model_used: { type: String, default: 'llama3.2' },
     provider_used: { type: String, default: 'ollama' },

@@ -1,45 +1,415 @@
+/* ========================================
+   History Page - NVIDIA Style
+   ======================================== */
+
 .history {
-  padding: var(--space-2xl) 0 var(--space-4xl);
+  padding: 3rem 2rem 4rem;
+  min-height: calc(100vh - 200px);
+}
+
+.history-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 1.5rem;
+  align-items: stretch;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(118, 185, 0, 0.2);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, rgba(118, 185, 0, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+  box-shadow: 0 0 32px rgba(118, 185, 0, 0.15);
+}
+
+.history-hero-copy {
+  min-width: 0;
+}
+
+.history-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #76b900;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 1rem;
+}
+
+.history-hero h1 {
+  max-width: 720px;
+  margin: 0;
+  color: white;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.history-hero p {
+  max-width: 780px;
+  margin-top: 0.75rem;
+  color: #cbd5e1;
+  font-size: 1rem;
+}
+
+.history-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-self: end;
+}
+
+.history-hero-stats div {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(248, 248, 248, 0.1);
+  border-radius: 0.875rem;
+  background: rgba(31, 41, 55, 0.6);
+  transition: all 0.25s ease;
+}
+
+.history-hero-stats div:hover {
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(118, 185, 0, 0.3);
+}
+
+.history-hero-stats strong {
+  display: block;
+  color: #76b900;
+  font-size: 1.5rem;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.history-hero-stats span {
+  display: block;
+  margin-top: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .history-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .history-hero-stats {
+    max-width: 520px;
+  }
+}
+
+@media (max-width: 768px) {
+  .history {
+    padding: 2rem 1.5rem 3rem;
+  }
+
+  .history-hero {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .history-hero-stats {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
+
+  .history-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .history {
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .history-hero {
+    padding: 1rem;
+  }
+
+  .history-hero h1 {
+    font-size: 1.25rem;
+  }
+
+  .history-hero-stats strong {
+    font-size: 1.25rem;
+  }
+}
+
+.history-control-panel {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.15rem;
+  background: rgba(12, 16, 31, 0.86);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 48px rgba(1, 6, 17, 0.45);
+}
+
+.history .btn {
+  min-height: 3.05rem;
+  border-radius: 0.85rem;
+  white-space: nowrap;
+}
+
+.history .btn-secondary {
+  color: #dbeafe;
+  border-color: rgba(96, 165, 250, 0.28);
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.history .btn-secondary:hover:not(:disabled) {
+  color: #ffffff;
+  background: rgba(37, 99, 235, 0.2);
 }
 
 .history-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-xl);
-  flex-wrap: wrap;
-  gap: var(--space-md);
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.history-header h1 {
-  font-size: var(--font-size-2xl);
-  font-weight: 800;
+.history-header h2 {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 0.55rem;
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+  font-weight: 850;
 }
 
 .history-header p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  margin-top: 4px;
+  margin-top: 0.35rem;
+  color: #9fb4ca;
+  font-size: 0.92rem;
+}
+
+.history-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
 }
 
 .history-search {
-  position: relative;
+  width: min(420px, 100%);
   min-width: 280px;
+  position: relative;
+  padding: 0;
+  display: block;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .history-search-icon {
   position: absolute;
-  left: 14px;
+  z-index: 1;
+  left: 0.95rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-muted);
+  color: #93a4b8;
 }
 
-.history-search .form-input {
-  padding-left: 40px;
+.history-search .form-input,
+.history-prompt-field .form-input {
+  min-height: 3.05rem;
+  padding-left: 2.7rem;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  border-radius: 0.85rem;
+  color: #e5eef8;
+  background: rgba(2, 6, 23, 0.72);
+  box-shadow: inset 0 0 16px rgba(34, 211, 238, 0.04);
+}
+
+.history-search .form-input::placeholder,
+.history-prompt-field .form-input::placeholder {
+  color: #7d8ca0;
+}
+
+.history-search .form-input:focus,
+.history-prompt-field .form-input:focus {
+  border-color: rgba(34, 211, 238, 0.56);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+}
+
+.history-role-filter {
+  display: grid;
+  grid-template-columns: auto minmax(260px, 1fr) auto auto auto;
+  align-items: start;
+  gap: 0.7rem;
+  margin-bottom: 0.85rem;
+}
+
+.history-role-icon {
+  margin-top: 0.9rem;
+  color: #67e8f9;
+  font-size: 1.2rem;
+}
+
+.history-prompt-field {
+  min-width: 0;
+  position: relative;
+}
+
+.history-suggestions,
+.history-examples,
+.history-skill-cloud,
+.history-required-skills,
+.history-inferred-skills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.history-suggestions {
+  margin-top: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.85rem;
+  background: rgba(2, 6, 23, 0.48);
+}
+
+.history-suggestions > span,
+.history-examples > span,
+.history-skill-cloud > span,
+.history-required-skills > span,
+.history-advanced-filters label > span {
+  color: #8fb6cc;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.history-suggestions button,
+.history-examples button,
+.history-skill-cloud button,
+.history-required-skills button,
+.history-inferred-skills span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  max-width: 100%;
+  padding: 0.42rem 0.72rem;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 999px;
+  color: #c7d8ea;
+  background: rgba(34, 211, 238, 0.07);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.1;
+  white-space: normal;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.history-suggestions button:hover,
+.history-examples button:hover,
+.history-skill-cloud button:hover,
+.history-required-skills button:hover {
+  color: #f8fafc;
+  border-color: rgba(34, 211, 238, 0.5);
+  background: rgba(34, 211, 238, 0.12);
+  transform: translateY(-1px);
+}
+
+.history-advanced-filters {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) minmax(150px, 1fr) minmax(96px, 0.55fr) minmax(96px, 0.55fr) minmax(140px, 0.8fr);
+  gap: 0.7rem;
+  margin: 0 0 0.85rem;
+}
+
+.history-advanced-filters label {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.history-advanced-filters .form-input {
+  min-height: 2.75rem;
+  padding: 0 0.8rem;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 0.75rem;
+  color: #e5eef8;
+  background: rgba(2, 6, 23, 0.58);
+}
+
+.history-required-skills {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(45, 212, 191, 0.16);
+  border-radius: 0.85rem;
+  background: rgba(20, 184, 166, 0.06);
+}
+
+.history-required-skills button {
+  color: #a5f3fc;
+  border-color: rgba(45, 212, 191, 0.24);
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.history-required-skills button::after {
+  content: "x";
+  margin-left: 0.45rem;
+  color: #67e8f9;
+  font-weight: 900;
+}
+
+.history-examples {
+  margin: 0.2rem 0 0.9rem;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.history-examples button {
+  border-color: rgba(96, 165, 250, 0.24);
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.history-skill-cloud {
+  margin-bottom: 0.9rem;
+}
+
+.history-filter-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: #c7d8ea;
+  font-size: 0.9rem;
+}
+
+.history-filter-summary strong {
+  color: #f8fafc;
+}
+
+.history-inferred-skills span {
+  color: #a5f3fc;
+  border-color: rgba(45, 212, 191, 0.24);
+  background: rgba(20, 184, 166, 0.1);
 }
 
 .history-loading {
@@ -54,12 +424,90 @@
   color: var(--text-muted);
 }
 
-.history-empty:hover { transform: none; }
+.history-empty:hover {
+  transform: none;
+}
 
 .history-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.history .analysis-card {
+  min-height: 248px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.86);
+  box-shadow: 0 12px 34px rgba(2, 6, 23, 0.32);
+  transform: none;
+}
+
+.history .analysis-card:hover {
+  border-color: rgba(138, 180, 248, 0.42);
+  transform: translateY(-3px);
+  box-shadow: 0 20px 42px rgba(2, 6, 23, 0.42);
+}
+
+.history .analysis-card-glow {
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.08), transparent 54%, rgba(52, 168, 83, 0.05));
+}
+
+.history .analysis-card-file-icon {
+  width: 3.15rem;
+  height: 3.15rem;
+  border-radius: 12px;
+  color: #8ab4f8;
+  border-color: rgba(138, 180, 248, 0.24);
+  background: rgba(66, 133, 244, 0.11);
+  box-shadow: none;
+}
+
+.history .analysis-card:hover .analysis-card-file-icon {
+  background: rgba(66, 133, 244, 0.16);
+  box-shadow: none;
+}
+
+.history .analysis-skill-tag {
+  min-height: 32px;
+  padding: 0.38rem 0.68rem;
+  border-color: rgba(138, 180, 248, 0.22);
+  color: #d8e6ff;
+  background: rgba(66, 133, 244, 0.11);
+  font-size: 0.78rem;
+}
+
+.history .analysis-skill-tag-more {
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.history .analysis-ats-badge {
+  min-height: 32px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  color: #7dd3fc;
+  background: rgba(14, 116, 144, 0.18);
+}
+
+.history .analysis-exp-badge {
+  min-height: 32px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  color: #fde68a;
+  background: rgba(180, 83, 9, 0.18);
+}
+
+.history .analysis-arrow {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.history .analysis-card:hover .analysis-arrow {
+  color: #ffffff;
+  background: #1a73e8;
+  transform: translateX(3px);
 }
 
 .history-pagination {
@@ -75,7 +523,62 @@
   color: var(--text-muted);
 }
 
+@media (max-width: 1024px) {
+  .history-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .history-hero-stats {
+    max-width: 520px;
+  }
+
+  .history-role-filter {
+    grid-template-columns: auto minmax(260px, 1fr) auto;
+  }
+
+  .history-advanced-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
-  .history-grid { grid-template-columns: 1fr; }
-  .history-search { min-width: 100%; }
+  .history {
+    padding-top: 1.2rem;
+  }
+
+  .history-hero,
+  .history-control-panel {
+    padding: 1rem;
+  }
+
+  .history-hero-stats {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
+
+  .history-header {
+    flex-direction: column;
+  }
+
+  .history-role-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .history-advanced-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .history-role-icon {
+    display: none;
+  }
+
+  .history-search,
+  .history-tools {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
 }

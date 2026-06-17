@@ -1,0 +1,298 @@
+/* ═══════════════════════════════════════════════════════════════
+   DriveExtract Page Styles
+   Premium dark glassmorphism — matches ExtractInfo design language
+   ═══════════════════════════════════════════════════════════════ */
+
+.drive-extract-page {
+  min-height: calc(100vh - 80px);
+  padding: 2.5rem 1rem 4rem;
+  position: relative;
+}
+
+.drive-extract-page .container {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.drive-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.drive-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.drive-header h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  margin: 0.25rem 0;
+}
+
+.drive-header p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.95rem;
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ── Link Input Section ──────────────────────────────────────── */
+.drive-input-section {
+  padding: 2rem;
+}
+
+.drive-input-wrapper {
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.drive-input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.drive-input-wrapper:focus-within .drive-input-icon {
+  color: #06b6d4;
+}
+
+.drive-link-input {
+  width: 100%;
+  padding: 0.9rem 1rem 0.9rem 2.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.drive-link-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.drive-link-input:focus {
+  border-color: rgba(6, 182, 212, 0.5);
+  background: rgba(6, 182, 212, 0.04);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.08), 0 0 20px rgba(6, 182, 212, 0.06);
+}
+
+.drive-link-input.invalid {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.drive-link-input.valid {
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.drive-validation-msg {
+  font-size: 0.78rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.drive-validation-msg.error {
+  color: #ef4444;
+}
+
+.drive-validation-msg.success {
+  color: #22c55e;
+}
+
+.drive-input-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.12);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.drive-input-hint svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #fbbf24;
+}
+
+.drive-submit {
+  margin-top: 1.25rem;
+  width: 100%;
+}
+
+/* ── Error ────────────────────────────────────────────────────── */
+.drive-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  color: #fca5a5;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+}
+
+/* ── Results — reuse ExtractInfo styles ─────────────────────── */
+.drive-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.drive-result-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.75rem 2rem;
+}
+
+.drive-result-hero h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.drive-result-hero p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+}
+
+.drive-result-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.drive-result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.drive-meta-item {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 100px;
+}
+
+.drive-meta-item span {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.drive-meta-item strong {
+  font-size: 0.85rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Reuse extract-grid, extract-section etc from ExtractInfo.css ── */
+/* The DriveExtract page imports ExtractInfo.css for shared result styles */
+
+/* ── Fade-in animations ──────────────────────────────────────── */
+.drive-fade-in {
+  animation: driveFadeIn 0.5s ease-out both;
+}
+
+.drive-fade-in.d1 { animation-delay: 0.05s; }
+.drive-fade-in.d2 { animation-delay: 0.12s; }
+.drive-fade-in.d3 { animation-delay: 0.2s; }
+.drive-fade-in.d4 { animation-delay: 0.28s; }
+.drive-fade-in.d5 { animation-delay: 0.36s; }
+.drive-fade-in.d6 { animation-delay: 0.44s; }
+.drive-fade-in.d7 { animation-delay: 0.52s; }
+
+@keyframes driveFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Drive icon pulse ────────────────────────────────────────── */
+.drive-icon-pulse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.drive-icon-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 18px;
+  border: 1px solid rgba(6, 182, 212, 0.1);
+  animation: driveIconPulse 2s ease-in-out infinite;
+}
+
+@keyframes driveIconPulse {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .drive-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .drive-input-section {
+    padding: 1.25rem;
+  }
+
+  .drive-result-hero {
+    padding: 1.25rem;
+  }
+
+  .drive-result-actions {
+    flex-direction: column;
+  }
+
+  .drive-result-meta {
+    flex-direction: column;
+  }
+}
