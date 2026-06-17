@@ -57,30 +57,30 @@ CORS(app, origins=["http://localhost:5173", "http://localhost:3000", "http://127
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  EXTRACTION PROMPT
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EXTRACT_PROMPT = """You are an expert resume OCR parser. Look at this resume image carefully and extract ALL important details.
+EXTRACT_PROMPT = """You are an expert resume parser. Look at this resume image carefully and extract ALL important details.
 
 Return ONLY valid JSON — no explanation, no markdown fences.
 
 RULES:
-- Do NOT include any personal details, including name, contact information, phone numbers, email addresses, physical addresses, locations, personal URLs/links (GitHub, LinkedIn, portfolios, etc.), or other identifying details. Set name, location, and links fields to null or empty arrays/objects.
-- Do NOT include college, university, or school names anywhere in the extraction. Set institution/school names to null.
-- For education: Include degree/education details (like B.Tech, MCA, etc.) and schooling details (10th, 12th) along with CGPA/percentage/grades, but EXCLUDE the college/university/school names (set institution to null).
+- Extract ALL personal details including full name, email addresses, phone numbers, physical address/location, and profile URLs (GitHub, LinkedIn, Portfolio).
+- Extract college, university, or school names under the education institution field.
+- For education: Include degree, institution/college/university name, stream/branch, CGPA/percentage/grades, and duration.
 - For professional_summary: Only extract the professional summary if it is explicitly written in the resume (under sections like Summary, Objective, Profile, About). Do NOT auto-generate a summary if it is not explicitly written in the resume. If not explicitly present, set this field to null. Under no circumstances should you return placeholder messages like "No professional summary" or generic candidate descriptions.
-- For projects: extract title, complete detailed description (including all key features, responsibilities, achievements, and metrics where available), and technologies used. Do NOT truncate or summarize details to a single line; extract the project details fully. Do NOT include company/client details if they are identifying.
-- For experience: include role, company (set to null if it is identifying, or use generic sector name like "E-commerce Startup"), duration, and brief description.
+- For projects: extract title, complete detailed description (including all key features, responsibilities, achievements, and metrics where available), and technologies used. Do NOT truncate or summarize details to a single line; extract the project details fully.
+- For experience: include role, actual company/employer name, duration, and brief description of work done. Always extract the real company name.
 
 Extract this EXACT structure:
 {
-  "name": null,
-  "email": [],
-  "phone": [],
-  "location": null,
+  "name": "<full candidate name or null>",
+  "email": ["<email address>"],
+  "phone": ["<phone number>"],
+  "location": "<city/state/country or null>",
   "professional_summary": "<extracted summary or null (only extract if explicitly written in the resume; do NOT auto-generate a summary if it is not explicitly written in the resume)>",
   "total_experience": "<e.g. 3+ years or null>",
   "links": {
-    "github": null,
-    "linkedin": null,
-    "portfolio": null,
+    "github": "<GitHub URL or null>",
+    "linkedin": "<LinkedIn URL or null>",
+    "portfolio": "<Portfolio URL or null>",
     "other": []
   },
   "degree": "<highest degree like B.Tech, BCA, MCA or null>",
@@ -88,11 +88,11 @@ Extract this EXACT structure:
   "cgpa": "<CGPA or percentage or null>",
   "tenth_marks": "<10th marks/percentage or null>",
   "twelfth_marks": "<12th marks/percentage or null>",
-  "education": [{"degree": "<degree>", "institution": null, "stream": "<branch>", "score": "<CGPA/%>", "duration": "<years>"}],
+  "education": [{"degree": "<degree>", "institution": "<college/university/school name>", "stream": "<branch>", "score": "<CGPA/%>", "duration": "<years>"}],
   "skills": ["<skill1>", "<skill2>", "<skill3>"],
   "projects": [{"title": "<name>", "description": "<complete detailed description/features/achievements>", "tech_stack": ["<tech>"]}],
   "certifications": [{"name": "<cert>", "issuer": "<org or null>", "year": "<year or null>"}],
-  "experience": [{"role": "<title>", "company": null, "duration": "<period>", "description": "<brief desc>"}],
+  "experience": [{"role": "<title>", "company": "<actual company name>", "duration": "<period>", "description": "<brief desc>"}],
   "achievements": ["<achievement1>", "<achievement2>"],
   "languages": ["<lang1>", "<lang2>"],
   "suggested_roles": ["<role1>", "<role2>"],
@@ -101,29 +101,29 @@ Extract this EXACT structure:
 
 MERGE_PROMPT = """You are an expert resume data merger. I have extracted resume data from multiple pages of the same resume.
 Merge them into a single clean JSON. Remove duplicates. Combine skills, projects, experience etc.
-If same field appears multiple times, keep the most complete version. Ensure all identifying details remain null or blank as per privacy constraints.
+If same field appears multiple times, keep the most complete version. Preserve all personal details, institution names, and company names.
 
 Return ONLY valid JSON — no explanation, no markdown.
 
 Use this exact structure:
 {
-  "name": null,
-  "email": [],
-  "phone": [],
-  "location": null,
+  "name": "<full candidate name or null>",
+  "email": ["<email>"],
+  "phone": ["<phone>"],
+  "location": "<location or null>",
   "professional_summary": "<summary or null>",
   "total_experience": "<experience or null>",
-  "links": {"github": null, "linkedin": null, "portfolio": null, "other": []},
+  "links": {"github": "<url or null>", "linkedin": "<url or null>", "portfolio": "<url or null>", "other": []},
   "degree": "<degree or null>",
   "stream": "<stream or null>",
   "cgpa": "<cgpa or null>",
   "tenth_marks": "<marks or null>",
   "twelfth_marks": "<marks or null>",
-  "education": [],
+  "education": [{"degree": "", "institution": "<college/university name>", "stream": "", "score": "", "duration": ""}],
   "skills": [],
   "projects": [{"title": "", "description": "", "tech_stack": []}],
   "certifications": [{"name": "", "issuer": null, "year": null}],
-  "experience": [{"role": "", "company": null, "duration": "", "description": ""}],
+  "experience": [{"role": "", "company": "<actual company name>", "duration": "", "description": ""}],
   "achievements": [],
   "languages": [],
   "suggested_roles": [],
@@ -375,25 +375,32 @@ def process_resume(file_path, filename="resume"):
         else:
             extracted["professional_summary"] = summary
 
-    # Strict anonymization check (exclusivity rules)
+    # Ensure all fields exist
     if extracted:
-        extracted["name"] = None
-        extracted["email"] = []
-        extracted["phone"] = []
-        extracted["location"] = None
-        extracted["links"] = {
-            "portfolio": None,
-            "github": None,
-            "linkedin": None,
-            "other": []
-        }
+        if "name" not in extracted:
+            extracted["name"] = None
+        if "email" not in extracted:
+            extracted["email"] = []
+        if "phone" not in extracted:
+            extracted["phone"] = []
+        if "location" not in extracted:
+            extracted["location"] = None
+        if "links" not in extracted:
+            extracted["links"] = {
+                "portfolio": None,
+                "github": None,
+                "linkedin": None,
+                "other": []
+            }
+        # Ensure institution is kept in education entries
         if "education" in extracted and isinstance(extracted["education"], list):
             for edu in extracted["education"]:
-                if isinstance(edu, dict):
+                if isinstance(edu, dict) and "institution" not in edu:
                     edu["institution"] = None
+        # Ensure company is kept in experience entries
         if "experience" in extracted and isinstance(extracted["experience"], list):
             for exp in extracted["experience"]:
-                if isinstance(exp, dict):
+                if isinstance(exp, dict) and "company" not in exp:
                     exp["company"] = None
 
     elapsed = time.time() - start_time

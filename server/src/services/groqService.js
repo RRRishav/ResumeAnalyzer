@@ -66,36 +66,34 @@ async function checkOllamaHealth() {
 //  RESUME DATA EXTRACTION
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const EXTRACT_SYSTEM_PROMPT = `You are an expert resume parser. Extract ONLY the specified fields from the resume text. Return valid JSON only — no explanation, no markdown.
+const EXTRACT_SYSTEM_PROMPT = `You are an expert resume parser. Extract ALL important details from the resume text. Return valid JSON only — no explanation, no markdown.
 
 RULES:
-- Extract ONLY the fields in the schema below.
+- Extract ALL the fields in the schema below.
 - If a field is not found, use null (strings), {} (objects) or [] (arrays).
 - Never return placeholder text, angle-bracket examples, or [object Object].
-- Do NOT include any personal details, including name, contact information, phone numbers, email addresses, physical addresses, locations, personal URLs/links (GitHub, LinkedIn, portfolios, etc.), or other identifying details. Set name, location, and links fields to null or empty arrays/objects.
-- Do NOT include college, university, or school names anywhere in the extraction. Set institution/school names to null.
-- Phone numbers and emails should be empty arrays since we are excluding personal/identifying info.
-- For education: Include degree/education details (like B.Tech, MCA, etc.) and schooling details (10th, 12th) along with CGPA/percentage/grades, but EXCLUDE the college/university/school names (set institution to null).
+- Extract name, email, phone, location, and all profile URLs (GitHub, LinkedIn, Portfolio) as they appear in the resume.
+- For education: Extract degree, institution/college/university name, stream/branch, CGPA/percentage, and duration.
 - For professional_summary: Only extract the professional summary if it is explicitly written in the resume (under sections like Summary, Objective, Profile, About). Do NOT auto-generate, synthesize, or invent a summary if the resume does not contain one. If not explicitly present, set this field to null. Under no circumstances should you return placeholder messages like "No professional summary" or generic candidate descriptions.
-- For projects: extract title, complete detailed description (including all key features, responsibilities, achievements, and metrics where available), and technologies used. Do NOT truncate or summarize details to a single line; extract the project details fully. Do NOT include company/client details if they are identifying.
+- For projects: extract title, complete detailed description (including all key features, responsibilities, achievements, and metrics where available), and technologies used. Do NOT truncate or summarize details to a single line; extract the project details fully.
 - For skills: group the skills into appropriate categories (e.g., "Programming Languages", "Frameworks & Libraries", "Databases", "Tools", "Soft Skills", etc.) as key-value pairs where the key is the category and the value is an array of skills.
-- For certifications: include cert name, issuing organization (if not identifying), and year.
-- For experience: include role, company (extract the actual company name), duration, and brief description.
+- For certifications: include cert name, issuing organization, and year.
+- For experience: include role, actual company name, duration, and brief description of work done. Always extract the real company name.
 - For suggested_roles: analyze the candidate's skills and experience, and list 2-4 target job roles they are best fit for.
 - For career_recommendations: analyze the candidate's skills and experience, and list 2-4 target job roles along with a match score (0-100) and a brief reason (1 sentence) explaining why they fit the role.
 
 Return this exact JSON structure:
 {
-  "name": null,
-  "phone": [],
-  "email": [],
-  "location": null,
+  "name": "<full name of the candidate>",
+  "phone": ["<phone number>"],
+  "email": ["<email address>"],
+  "location": "<city, state or country>",
   "professional_summary": "<extracted summary or null>",
   "total_experience": "<total years of experience, e.g. 3 years>",
   "links": {
-    "portfolio": null,
-    "github": null,
-    "linkedin": null,
+    "portfolio": "<portfolio URL or null>",
+    "github": "<GitHub URL or null>",
+    "linkedin": "<LinkedIn URL or null>",
     "other": []
   },
   "tenth_marks": "<10th marks/percentage/CGPA or null>",
@@ -106,7 +104,7 @@ Return this exact JSON structure:
   "education": [
     {
       "degree": "<degree/class, e.g., B.Tech, 12th, 10th>",
-      "institution": null,
+      "institution": "<college, university, or school name>",
       "stream": "<stream/branch/subjects, e.g. CSE, Science, or null>",
       "score": "<CGPA or percentage or grades or null>",
       "duration": "<years/duration or null>"
@@ -138,7 +136,7 @@ Return this exact JSON structure:
   "experience": [
     {
       "role": "<job title>",
-      "company": "<company name>",
+      "company": "<actual company name>",
       "duration": "<period, e.g. June 2021 - Present>",
       "description": "<brief description of work done>"
     }
@@ -198,7 +196,7 @@ async function extractResumeData(resumeText) {
         },
       ],
       temperature: 0.1,
-      max_tokens: 1400,
+      max_tokens: 2800,
       response_format: { type: 'json_object' },
     });
 
@@ -694,18 +692,27 @@ function sanitizeExtraction(data) {
     }
   }
 
+  // Clean links — keep real URLs, reject placeholder text
+  const rawLinks = data.links || {};
+  const cleanLink = (v) => {
+    const s = cleanScalar(v);
+    if (!s) return null;
+    if (/^<.*>$/.test(s) || /\bor null\b/i.test(s)) return null;
+    return s;
+  };
+
   return {
-    name: null,
-    phone: [],
-    email: [],
-    location: null,
+    name: cleanScalar(data.name),
+    phone: Array.isArray(data.phone) ? data.phone.map(cleanScalar).filter(Boolean) : (data.phone ? [cleanScalar(data.phone)].filter(Boolean) : []),
+    email: Array.isArray(data.email) ? data.email.map(cleanScalar).filter(Boolean) : (data.email ? [cleanScalar(data.email)].filter(Boolean) : []),
+    location: cleanScalar(data.location),
     professional_summary: cleanSummaryField(data.professional_summary),
     total_experience: cleanScalar(data.total_experience),
     links: {
-      portfolio: null,
-      github: null,
-      linkedin: null,
-      other: []
+      portfolio: cleanLink(rawLinks.portfolio),
+      github: cleanLink(rawLinks.github),
+      linkedin: cleanLink(rawLinks.linkedin),
+      other: Array.isArray(rawLinks.other) ? rawLinks.other.map(cleanScalar).filter(Boolean) : []
     },
     tenth_marks: cleanScalar(data.tenth_marks),
     twelfth_marks: cleanScalar(data.twelfth_marks),
@@ -713,7 +720,7 @@ function sanitizeExtraction(data) {
     stream: cleanScalar(data.stream),
     cgpa: cleanScalar(data.cgpa),
     education: Array.isArray(data.education)
-      ? data.education.map((e) => ({ degree: cleanScalar(e.degree), institution: null, stream: cleanScalar(e.stream), score: cleanScalar(e.score), duration: cleanScalar(e.duration) })).filter((e) => e.degree || e.stream || e.score || e.duration)
+      ? data.education.map((e) => ({ degree: cleanScalar(e.degree), institution: cleanScalar(e.institution), stream: cleanScalar(e.stream), score: cleanScalar(e.score), duration: cleanScalar(e.duration) })).filter((e) => e.degree || e.institution || e.stream || e.score || e.duration)
       : [],
     projects: Array.isArray(data.projects)
       ? data.projects.map((p) => ({ title: cleanScalar(p.title) || 'Untitled Project', description: cleanScalar(p.description) || '', tech_stack: cleanArray(p.tech_stack) })).filter((p) => p.title !== 'Untitled Project' || p.description || p.tech_stack.length)

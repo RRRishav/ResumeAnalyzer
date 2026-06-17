@@ -33,6 +33,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import api from '../services/api';
 import ProgressBar from '../components/ProgressBar';
+import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -61,6 +62,7 @@ export default function DriveExtract() {
   const [progress, setProgress] = useState({ stage: '', progress: 0, message: '' });
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [showSuggested, setShowSuggested] = useState(false);
   const [llmStatus, setLlmStatus] = useState('checking');
   const [llmModel, setLlmModel] = useState('');
   const [llmProvider, setLlmProvider] = useState('');
@@ -153,6 +155,7 @@ export default function DriveExtract() {
     setLinkValid(null);
     setResult(null);
     setError('');
+    setShowSuggested(false);
     setProgress({ stage: '', progress: 0, message: '' });
   };
 
@@ -389,22 +392,18 @@ export default function DriveExtract() {
                 </Card>
               )}
 
-              {/* Suggested Roles */}
-              {data.suggested_roles?.length > 0 && (
-                <Card className="extract-section roles-section extract-grid-full drive-fade-in d2">
-                  <div className="extract-section-title">
-                    <div className="extract-section-icon"><FiTrendingUp style={{ color: '#60a5fa' }} /></div>
-                    Suggested Roles
-                  </div>
-                  <div className="extract-skills-grid">
-                    {data.suggested_roles.map((role, i) => (
-                      <span key={i} className="extract-skill-tag" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.2)' }}>
-                        {role}
-                      </span>
-                    ))}
-                  </div>
-                </Card>
-              )}
+              <CareerRecommendationsSection
+                recommendations={data.career_recommendations}
+                fallbackRoles={data.suggested_roles}
+                animationClass="drive-fade-in d2"
+              />
+
+              <SuggestedRolesSection
+                roles={data.suggested_roles}
+                show={showSuggested}
+                onToggle={() => setShowSuggested(!showSuggested)}
+                animationClass="drive-fade-in d2"
+              />
 
               {/* Education */}
               <Card className="extract-section education drive-fade-in d3">

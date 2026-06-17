@@ -103,6 +103,7 @@ RULES:
 - Phone numbers should include country code if present
 - Skills should be individual skill names as simple strings
 - Projects: Extract detailed information for each project, including title, complete description (features/achievements), and technologies used
+- Experience: Extract as a list of objects with role, company (actual company name), duration, and description. Always include the real company name.
 
 Return this EXACT JSON structure:
 {
@@ -126,7 +127,15 @@ Return this EXACT JSON structure:
     }
   ],
   "certifications": ["<cert1>", "<cert2>"],
-  "experience": "<total experience summary or null>",
+  "total_experience": "<total experience summary, e.g. 2 years or null>",
+  "experience": [
+    {
+      "role": "<job title>",
+      "company": "<actual company name>",
+      "duration": "<period, e.g. June 2021 - Present>",
+      "description": "<brief description of work>"
+    }
+  ],
   "languages": ["<lang1>", "<lang2>"]
 }"""
 
@@ -195,6 +204,38 @@ def projects_to_str(projects):
     return "; ".join(lines)
 
 
+def experience_to_str(experience):
+    """Convert experience list of dicts to a clean formatted string including company names."""
+    if not experience:
+        return ""
+    if isinstance(experience, str):
+        return experience
+    if not isinstance(experience, list):
+        return str(experience)
+    lines = []
+    for exp in experience:
+        if isinstance(exp, dict):
+            role = exp.get("role") or ""
+            company = exp.get("company") or ""
+            duration = exp.get("duration") or ""
+            description = exp.get("description") or ""
+            parts = []
+            if role and company:
+                parts.append(f"{role} @ {company}")
+            elif role:
+                parts.append(role)
+            elif company:
+                parts.append(company)
+            if duration:
+                parts.append(f"({duration})")
+            if description:
+                parts.append(description)
+            lines.append(" | ".join(parts))
+        else:
+            lines.append(str(exp))
+    return "\n".join(lines)
+
+
 def create_excel(all_data, output_path):
     """Create a beautifully styled Excel file from extracted resume data."""
     wb = Workbook()
@@ -226,9 +267,9 @@ def create_excel(all_data, output_path):
     serial_alignment = Alignment(horizontal="center", vertical="top")
 
     # ─── Title Row ──────────────────────────────────────────────────
-    ws.merge_cells("A1:Q1")
+    ws.merge_cells("A1:S1")
     title_cell = ws["A1"]
-    title_cell.value = f"📋 Resume Data Report — Generated {datetime.now().strftime('%d %b %Y, %I:%M %p')}"
+    title_cell.value = f"\U0001f4cb Resume Data Report — Generated {datetime.now().strftime('%d %b %Y, %I:%M %p')}"
     title_cell.font = title_font
     title_cell.alignment = title_alignment
     ws.row_dimensions[1].height = 40
@@ -254,7 +295,8 @@ def create_excel(all_data, output_path):
         ("Skills", 45),
         ("Projects", 35),
         ("Certifications", 35),
-        ("Experience", 25),
+        ("Total Experience", 20),
+        ("Experience Details (Company & Role)", 50),
         ("Languages", 20),
     ]
 
@@ -290,9 +332,10 @@ def create_excel(all_data, output_path):
             data.get("linkedin", ""),                     # LinkedIn
             data.get("portfolio", ""),                    # Portfolio
             arr_to_str(data.get("skills", [])),           # Skills
-            projects_to_str(data.get("projects", [])),         # Projects
-            arr_to_str(data.get("certifications", [])),   # Certifications
-            data.get("experience", ""),                   # Experience
+            projects_to_str(data.get("projects", [])),   # Projects
+            arr_to_str(data.get("certifications", [])),  # Certifications
+            data.get("total_experience", "") or data.get("experience", "") if isinstance(data.get("experience"), str) else data.get("total_experience", ""),  # Total Experience
+            experience_to_str(data.get("experience", [])) if isinstance(data.get("experience"), list) else "",  # Experience Details
             arr_to_str(data.get("languages", [])),        # Languages
         ]
 

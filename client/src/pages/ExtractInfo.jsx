@@ -14,8 +14,14 @@ import {
   FiDatabase,
   FiEye,
   FiFileText,
+  FiGithub,
   FiGlobe,
   FiImage,
+  FiLink,
+  FiLinkedin,
+  FiMail,
+  FiMapPin,
+  FiPhone,
   FiRefreshCcw,
   FiSend,
   FiServer,
@@ -24,6 +30,7 @@ import {
   FiTool,
   FiTrendingUp,
   FiUploadCloud,
+  FiUser,
   FiX,
   FiZap,
 } from 'react-icons/fi';
@@ -31,6 +38,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import api from '../services/api';
 import ProgressBar from '../components/ProgressBar';
+import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -44,6 +52,54 @@ const getSocketURL = () => {
 
 const STANDARD_EXTS = ['pdf', 'docx', 'doc', 'txt'];
 const OCR_EXTS = ['pdf', 'docx', 'doc', 'txt', 'png', 'jpg', 'jpeg'];
+
+const flattenSkills = (skills) => {
+  if (!skills) return [];
+  if (Array.isArray(skills)) return skills.filter(Boolean);
+  return Object.values(skills).flatMap((list) => Array.isArray(list) ? list : []).filter(Boolean);
+};
+
+const inferSuggestedRoles = (data) => {
+  const existing = Array.isArray(data.suggested_roles) ? data.suggested_roles.filter(Boolean) : [];
+  if (existing.length) return existing;
+
+  const text = [
+    ...flattenSkills(data.skills),
+    data.degree,
+    data.stream,
+    data.total_experience,
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  const roles = [];
+  const add = (role) => {
+    if (!roles.includes(role)) roles.push(role);
+  };
+
+  if (/react|javascript|typescript|html|css|tailwind|frontend|front end|ui/.test(text)) add('Frontend Developer');
+  if (/node|express|api|mongodb|sql|postgres|mysql|backend|server/.test(text)) add('Backend Developer');
+  if (/python|machine learning|ml|data|pandas|numpy|tensorflow|power bi|tableau/.test(text)) add('Data Analyst');
+  if (/java|spring|c\+\+|c#|software|programming|computer science|cse|it/.test(text)) add('Software Engineer');
+  if (/aws|azure|gcp|docker|kubernetes|devops|ci\/cd|linux/.test(text)) add('DevOps Engineer');
+
+  if (!roles.length) {
+    add('Software Engineer');
+    add('Frontend Developer');
+    add('Data Analyst');
+  }
+
+  return roles.slice(0, 4);
+};
+
+const inferCareerRecommendations = (data, roles) => {
+  const existing = Array.isArray(data.career_recommendations) ? data.career_recommendations.filter(Boolean) : [];
+  if (existing.length) return existing;
+
+  return roles.slice(0, 3).map((role, index) => ({
+    role,
+    match_score: 85 - (index * 5),
+    reason: 'Based on extracted skills and education',
+  }));
+};
 
 export default function ExtractInfo() {
   const { refreshUser } = useAuth();
@@ -190,6 +246,8 @@ export default function ExtractInfo() {
   /* ── Derived data ── */
   const data = result?.extracted_data || {};
   const isOcrResult = result?._mode === 'ocr';
+  const suggestedRoles = inferSuggestedRoles(data);
+  const careerRecommendations = inferCareerRecommendations(data, suggestedRoles);
 
   const educationItems = data.education?.length
     ? data.education
@@ -419,7 +477,6 @@ export default function ExtractInfo() {
               <div className="extract-grid">
 
                 {/* Professional Summary */}
-                {/* Professional Summary */}
                 {data.professional_summary && (
                   <Card className="extract-section summary-section extract-grid-full extract-fade-in d2">
                     <div className="extract-section-title">
@@ -430,56 +487,16 @@ export default function ExtractInfo() {
                   </Card>
                 )}
 
-                {/* Career Recommendations */}
-                {data.career_recommendations?.length > 0 && (
-                  <Card className="extract-section roles-section extract-grid-full extract-fade-in d2">
-                    <div className="extract-section-title">
-                      <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
-                      Career Recommendations
-                    </div>
-                    <ul style={{ marginTop: '0.75rem', paddingLeft: '1.25rem', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {data.career_recommendations.map((c, i) => (
-                        <li key={i} style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.75)', lineHeight: '1.5', display: 'list-item' }}>
-                          <strong style={{ color: '#60a5fa', fontWeight: '600' }}>{c.role}</strong> ({c.match_score}% Match) — {c.reason}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                )}
+                <CareerRecommendationsSection
+                  recommendations={careerRecommendations}
+                  fallbackRoles={suggestedRoles}
+                />
 
-                {/* Suggested Roles */}
-                {data.suggested_roles?.length > 0 && (
-                  <Card className="extract-section roles-section extract-grid-full extract-fade-in d2">
-                    <div className="extract-section-title">
-                      <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
-                      Suggested Job Roles
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        style={{ marginLeft: 'auto' }}
-                        onClick={() => setShowSuggested(!showSuggested)}
-                      >
-                        {showSuggested ? 'Hide' : 'Show'}
-                      </Button>
-                    </div>
-                    {showSuggested ? (
-                      <>
-                        <p className="extract-summary-text" style={{ marginBottom: '0.85rem', fontSize: '0.9rem' }}>
-                          Based on your skills, experience, and projects — AI-recommended roles:
-                        </p>
-                        <div className="extract-skills-grid">
-                          {data.suggested_roles.map((role, i) => (
-                            <span key={i} className="extract-skill-tag role-tag">{role}</span>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
-                        <Button size="sm" onClick={() => setShowSuggested(true)}>Show Suggested Roles</Button>
-                      </div>
-                    )}
-                  </Card>
-                )}
+                <SuggestedRolesSection
+                  roles={suggestedRoles}
+                  show={showSuggested}
+                  onToggle={() => setShowSuggested(!showSuggested)}
+                />
 
                 {/* Education */}
                 <Card className="extract-section education extract-fade-in d3">
@@ -492,7 +509,6 @@ export default function ExtractInfo() {
                       {educationItems.map((edu, i) => (
                         <div key={i} className="extract-timeline-card">
                           <div className="extract-timeline-title">{edu.degree || 'Education'}</div>
-                          {edu.institution && <div className="extract-timeline-subtitle">{edu.institution}</div>}
                           <div className="extract-mini-tags">
                             {edu.stream && <span>{edu.stream}</span>}
                             {edu.score && <span>{edu.score}</span>}

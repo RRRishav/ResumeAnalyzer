@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import {
   FiArrowLeft,
   FiAward,
@@ -18,6 +19,7 @@ import {
   FiLink,
   FiLinkedin,
   FiMail,
+  FiMapPin,
   FiPhone,
   FiTool,
   FiUser,
@@ -132,53 +134,16 @@ export default function ExtractDetail() {
             </Card>
           )}
 
-          {/* Career Recommendations */}
-          {data.career_recommendations?.length > 0 && (
-            <Card className="extract-section roles-section extract-grid-full extract-fade-in d2">
-              <div className="extract-section-title">
-                <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
-                Career Recommendations
-              </div>
-              <ul style={{ marginTop: '0.75rem', paddingLeft: '1.25rem', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {data.career_recommendations.map((c, i) => (
-                  <li key={i} style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.75)', lineHeight: '1.5', display: 'list-item' }}>
-                    <strong style={{ color: '#60a5fa', fontWeight: '600' }}>{c.role}</strong> ({c.match_score}% Match) — {c.reason}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
+          <CareerRecommendationsSection
+            recommendations={data.career_recommendations}
+            fallbackRoles={data.suggested_roles}
+          />
 
-          {/* Suggested Roles */}
-          {data.suggested_roles?.length > 0 && (
-            <Card className="extract-section roles-section extract-grid-full extract-fade-in d2">
-              <div className="extract-section-title">
-                <div className="extract-section-icon"><FiTrendingUp style={{ color: '#60a5fa' }} /></div>
-                Suggested Roles
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  style={{ marginLeft: 'auto' }}
-                  onClick={() => setShowSuggested(!showSuggested)}
-                >
-                  {showSuggested ? 'Hide' : 'Show'}
-                </Button>
-              </div>
-              {showSuggested ? (
-                <div className="extract-skills-grid" style={{ marginTop: '0.5rem' }}>
-                  {data.suggested_roles.map((role, i) => (
-                    <span key={i} className="extract-skill-tag" style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.2)' }}>
-                      {role}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
-                  <Button size="sm" onClick={() => setShowSuggested(true)}>Show Suggested Roles</Button>
-                </div>
-              )}
-            </Card>
-          )}
+          <SuggestedRolesSection
+            roles={data.suggested_roles}
+            show={showSuggested}
+            onToggle={() => setShowSuggested(!showSuggested)}
+          />
 
           {/* Education */}
           <Card className="extract-section education extract-fade-in d3">

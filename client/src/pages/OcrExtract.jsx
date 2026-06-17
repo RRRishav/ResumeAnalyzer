@@ -30,6 +30,7 @@ import {
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import api from '../services/api';
 import './OcrExtract.css';
 import './ExtractInfo.css';
@@ -289,58 +290,18 @@ export default function OcrExtract() {
                   </Card>
                 )}
 
-                {/* Suggested Roles */}
-                <Card className="extract-section roles-section extract-grid-full ocr-fade-in d2">
-                  <div className="extract-section-title">
-                    <div className="extract-section-icon"><FiTrendingUp style={{ color: '#10b981' }} /></div>
-                    Suggested Roles / Career Matches
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      style={{ marginLeft: 'auto' }}
-                      onClick={() => setShowSuggested(!showSuggested)}
-                    >
-                      {showSuggested ? 'Hide' : 'Show'}
-                    </Button>
-                  </div>
-                  {showSuggested ? (
-                    data.suggested_roles?.length > 0 ? (
-                      <div className="suggested-roles-container" style={{ marginTop: '0.5rem' }}>
-                        <p className="suggested-roles-intro">Based on your skills, experience, and projects, our AI suggests that you are a strong fit for the following target roles:</p>
-                        <div className="extract-skills-grid">
-                          {data.suggested_roles.map((role, i) => (
-                            <span key={i} className="extract-skill-tag role-tag">
-                              {role}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="extract-empty">No role recommendations available</div>
-                    )
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
-                      <Button size="sm" onClick={() => setShowSuggested(true)}>Show Suggested Roles</Button>
-                    </div>
-                  )}
-                </Card>
+                <SuggestedRolesSection
+                  roles={data.suggested_roles}
+                  show={showSuggested}
+                  onToggle={() => setShowSuggested(!showSuggested)}
+                  animationClass="ocr-fade-in d2"
+                />
 
-                {/* Career Recommendations */}
-                {data.career_recommendations?.length > 0 && (
-                  <Card className="extract-section roles-section extract-grid-full ocr-fade-in d2">
-                    <div className="extract-section-title">
-                      <div className="extract-section-icon"><FiStar style={{ color: '#60a5fa' }} /></div>
-                      Career Recommendations
-                    </div>
-                    <ul style={{ marginTop: '0.75rem', paddingLeft: '1.25rem', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {data.career_recommendations.map((c, i) => (
-                        <li key={i} style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.75)', lineHeight: '1.5', display: 'list-item' }}>
-                          <strong style={{ color: '#60a5fa', fontWeight: '600' }}>{c.role}</strong> ({c.match_score}% Match) — {c.reason}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                )}
+                <CareerRecommendationsSection
+                  recommendations={data.career_recommendations}
+                  fallbackRoles={data.suggested_roles}
+                  animationClass="ocr-fade-in d2"
+                />
 
                 {/* Education */}
                 <Card className="extract-section education ocr-fade-in d3">
