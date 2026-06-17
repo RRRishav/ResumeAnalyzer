@@ -38,7 +38,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import api from '../services/api';
 import ProgressBar from '../components/ProgressBar';
-import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
+import { SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -59,47 +59,7 @@ const flattenSkills = (skills) => {
   return Object.values(skills).flatMap((list) => Array.isArray(list) ? list : []).filter(Boolean);
 };
 
-const inferSuggestedRoles = (data) => {
-  const existing = Array.isArray(data.suggested_roles) ? data.suggested_roles.filter(Boolean) : [];
-  if (existing.length) return existing;
 
-  const text = [
-    ...flattenSkills(data.skills),
-    data.degree,
-    data.stream,
-    data.total_experience,
-  ].filter(Boolean).join(' ').toLowerCase();
-
-  const roles = [];
-  const add = (role) => {
-    if (!roles.includes(role)) roles.push(role);
-  };
-
-  if (/react|javascript|typescript|html|css|tailwind|frontend|front end|ui/.test(text)) add('Frontend Developer');
-  if (/node|express|api|mongodb|sql|postgres|mysql|backend|server/.test(text)) add('Backend Developer');
-  if (/python|machine learning|ml|data|pandas|numpy|tensorflow|power bi|tableau/.test(text)) add('Data Analyst');
-  if (/java|spring|c\+\+|c#|software|programming|computer science|cse|it/.test(text)) add('Software Engineer');
-  if (/aws|azure|gcp|docker|kubernetes|devops|ci\/cd|linux/.test(text)) add('DevOps Engineer');
-
-  if (!roles.length) {
-    add('Software Engineer');
-    add('Frontend Developer');
-    add('Data Analyst');
-  }
-
-  return roles.slice(0, 4);
-};
-
-const inferCareerRecommendations = (data, roles) => {
-  const existing = Array.isArray(data.career_recommendations) ? data.career_recommendations.filter(Boolean) : [];
-  if (existing.length) return existing;
-
-  return roles.slice(0, 3).map((role, index) => ({
-    role,
-    match_score: 85 - (index * 5),
-    reason: 'Based on extracted skills and education',
-  }));
-};
 
 export default function ExtractInfo() {
   const { refreshUser } = useAuth();
@@ -129,6 +89,7 @@ export default function ExtractInfo() {
   const [llmStatus, setLlmStatus] = useState('checking');
   const [llmModel, setLlmModel] = useState('');
   const [llmProvider, setLlmProvider] = useState('');
+  const [rolesLoading, setRolesLoading] = useState(false);
   const socketRef = useRef(null);
 
   /* ── Socket.IO setup ── */
@@ -240,14 +201,33 @@ export default function ExtractInfo() {
     setProgress({ stage: '', progress: 0, message: '' });
     setOcrStep('');
     setViewMode('beautiful');
-    setShowSuggested(false);
+    setRolesLoading(false);
+  };
+
+  const handleSuggestRoles = async () => {
+    if (!result?.id) return;
+    setRolesLoading(true);
+    try {
+      const res = await api.post(`/extract/suggest-roles/${result.id}`);
+      setResult(prev => ({
+        ...prev,
+        extracted_data: {
+          ...(prev.extracted_data || {}),
+          suggested_roles: res.data.suggested_roles
+        }
+      }));
+      toast.success('Generated suggested job roles!', 3000);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to get job recommendations.', 4000);
+    } finally {
+      setRolesLoading(false);
+    }
   };
 
   /* ── Derived data ── */
   const data = result?.extracted_data || {};
   const isOcrResult = result?._mode === 'ocr';
-  const suggestedRoles = inferSuggestedRoles(data);
-  const careerRecommendations = inferCareerRecommendations(data, suggestedRoles);
 
   const educationItems = data.education?.length
     ? data.education
@@ -487,15 +467,10 @@ export default function ExtractInfo() {
                   </Card>
                 )}
 
-                <CareerRecommendationsSection
-                  recommendations={careerRecommendations}
-                  fallbackRoles={suggestedRoles}
-                />
-
                 <SuggestedRolesSection
-                  roles={suggestedRoles}
-                  show={showSuggested}
-                  onToggle={() => setShowSuggested(!showSuggested)}
+                  roles={data.suggested_roles || []}
+                  isLoading={rolesLoading}
+                  onFetch={handleSuggestRoles}
                 />
 
                 {/* Education */}

@@ -58,7 +58,7 @@ exports.analyze = async (req, res) => {
       weaknesses: result.weaknesses || [],
       suggestions: result.suggestions || [],
       gemini_insights: result.gemini_insights,
-      career_recommendations: result.career_recommendations || [],
+      suggested_roles: result.suggested_roles || [],
       job_title_match: result.job_title_match || '',
       raw_text: result.raw_text,
       word_count: result.wordCount || 0,
@@ -134,7 +134,7 @@ exports.getReport = async (req, res) => {
     }
 
     const report = await Analysis.findOne({ _id: req.params.id, user_id: req.user.id })
-      .select('_id filename file_type overall_score ats_score experience_level skills skill_categories strengths weaknesses suggestions gemini_insights career_recommendations word_count created_at')
+      .select('_id filename file_type overall_score ats_score experience_level skills skill_categories strengths weaknesses suggestions gemini_insights suggested_roles word_count created_at')
       .lean();
 
     if (!report) {
@@ -155,7 +155,7 @@ exports.getReport = async (req, res) => {
         weaknesses: report.weaknesses,
         suggestions: report.suggestions,
         gemini_insights: report.gemini_insights,
-        career_recommendations: report.career_recommendations,
+        suggested_roles: report.suggested_roles,
         word_count: report.word_count,
         created_at: report.created_at,
       },
@@ -388,5 +388,31 @@ exports.exportFilteredToCsv = async (req, res) => {
   } catch (error) {
     console.error('Filtered CSV export error:', error);
     res.status(500).json({ error: 'Failed to export filtered CSV' });
+  }
+};
+
+// POST /api/resume/suggest-roles/:id
+exports.suggestRoles = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const analysis = await Analysis.findOne({ _id: id, user_id: req.user.id });
+    if (!analysis) {
+      return res.status(404).json({ error: 'Analysis report not found' });
+    }
+
+    if (analysis.suggested_roles && analysis.suggested_roles.length > 0) {
+      return res.json({ suggested_roles: analysis.suggested_roles });
+    }
+
+    const { getSuggestedRolesFromLLM } = require('../services/groqService');
+    const roles = await getSuggestedRolesFromLLM(analysis.raw_text || '', analysis.skills || []);
+
+    analysis.suggested_roles = roles;
+    await analysis.save();
+
+    res.json({ suggested_roles: roles });
+  } catch (error) {
+    console.error('Suggest roles error:', error);
+    res.status(500).json({ error: error.message || 'Failed to suggest roles' });
   }
 };

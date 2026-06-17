@@ -33,7 +33,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import api from '../services/api';
 import ProgressBar from '../components/ProgressBar';
-import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
+import { SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -62,7 +62,7 @@ export default function DriveExtract() {
   const [progress, setProgress] = useState({ stage: '', progress: 0, message: '' });
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [showSuggested, setShowSuggested] = useState(false);
+  const [rolesLoading, setRolesLoading] = useState(false);
   const [llmStatus, setLlmStatus] = useState('checking');
   const [llmModel, setLlmModel] = useState('');
   const [llmProvider, setLlmProvider] = useState('');
@@ -155,8 +155,27 @@ export default function DriveExtract() {
     setLinkValid(null);
     setResult(null);
     setError('');
-    setShowSuggested(false);
+    setRolesLoading(false);
     setProgress({ stage: '', progress: 0, message: '' });
+  };
+
+  const handleSuggestRoles = async () => {
+    if (!result?.id) return;
+    setRolesLoading(true);
+    try {
+      const res = await api.post(`/extract/suggest-roles/${result.id}`);
+      setResult(prev => ({
+        ...prev,
+        extracted_data: {
+          ...(prev.extracted_data || {}),
+          suggested_roles: res.data.suggested_roles
+        }
+      }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRolesLoading(false);
+    }
   };
 
   const data = result?.extracted_data || {};
@@ -392,16 +411,10 @@ export default function DriveExtract() {
                 </Card>
               )}
 
-              <CareerRecommendationsSection
-                recommendations={data.career_recommendations}
-                fallbackRoles={data.suggested_roles}
-                animationClass="drive-fade-in d2"
-              />
-
               <SuggestedRolesSection
-                roles={data.suggested_roles}
-                show={showSuggested}
-                onToggle={() => setShowSuggested(!showSuggested)}
+                roles={data.suggested_roles || []}
+                isLoading={rolesLoading}
+                onFetch={handleSuggestRoles}
                 animationClass="drive-fade-in d2"
               />
 

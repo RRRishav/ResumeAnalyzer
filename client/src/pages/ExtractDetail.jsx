@@ -4,7 +4,7 @@ import api from '../services/api';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
+import { SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import {
   FiArrowLeft,
   FiAward,
@@ -34,7 +34,7 @@ export default function ExtractDetail() {
   const navigate = useNavigate();
   const [extraction, setExtraction] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showSuggested, setShowSuggested] = useState(false);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   useEffect(() => {
     loadExtraction();
@@ -48,6 +48,25 @@ export default function ExtractDetail() {
       console.error('Failed to load extraction:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSuggestRoles = async () => {
+    if (!id) return;
+    setRolesLoading(true);
+    try {
+      const res = await api.post(`/extract/suggest-roles/${id}`);
+      setExtraction(prev => ({
+        ...prev,
+        extracted_data: {
+          ...(prev.extracted_data || {}),
+          suggested_roles: res.data.suggested_roles
+        }
+      }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRolesLoading(false);
     }
   };
 
@@ -134,15 +153,10 @@ export default function ExtractDetail() {
             </Card>
           )}
 
-          <CareerRecommendationsSection
-            recommendations={data.career_recommendations}
-            fallbackRoles={data.suggested_roles}
-          />
-
           <SuggestedRolesSection
-            roles={data.suggested_roles}
-            show={showSuggested}
-            onToggle={() => setShowSuggested(!showSuggested)}
+            roles={data.suggested_roles || []}
+            isLoading={rolesLoading}
+            onFetch={handleSuggestRoles}
           />
 
           {/* Education */}

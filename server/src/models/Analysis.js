@@ -14,7 +14,7 @@ const analysisSchema = new mongoose.Schema(
     weaknesses: { type: [String], default: [] },
     suggestions: { type: [mongoose.Schema.Types.Mixed], default: [] },
     gemini_insights: { type: String },
-    career_recommendations: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    suggested_roles: { type: [mongoose.Schema.Types.Mixed], default: [] },
     job_title_match: { type: String },
     raw_text: { type: String },
     word_count: { type: Number, default: 0 },

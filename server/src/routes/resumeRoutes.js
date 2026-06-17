@@ -9,11 +9,13 @@ const {
   getStats,
   searchByRole,
   searchBySkill,
+  suggestRoles,
 } = require('../controllers/resumeController');
 const { auth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
 router.post('/analyze', auth, upload.single('resume'), analyze);
+router.post('/suggest-roles/:id', auth, suggestRoles);
 router.get('/analyze', (req, res) => {
   res.status(405).json({
     error: 'Use the analyzer page to upload a resume.',

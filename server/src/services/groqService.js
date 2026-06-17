@@ -18,9 +18,9 @@ const Groq = require('groq-sdk');
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
-const MODEL_EXTRACTING = process.env.MODEL_EXTRACTING || GROQ_MODEL;
-const MODEL_RECOMMENDATION = process.env.MODEL_RECOMMENDATION || GROQ_MODEL;
-const MODEL_IMPROVEMENT = process.env.MODEL_IMPROVEMENT || GROQ_MODEL;
+const MODEL_EXTRACTING = process.env.MODEL_EXTRACTING || 'llama-3.3-70b-versatile';
+const MODEL_RECOMMENDATION = process.env.MODEL_RECOMMENDATION || 'qwen/qwen3-32b';
+const MODEL_IMPROVEMENT = process.env.MODEL_IMPROVEMENT || 'llama-3.3-70b-versatile';
 
 const client = new Groq({ apiKey: GROQ_API_KEY });
 
@@ -79,8 +79,6 @@ RULES:
 - For skills: group the skills into appropriate categories (e.g., "Programming Languages", "Frameworks & Libraries", "Databases", "Tools", "Soft Skills", etc.) as key-value pairs where the key is the category and the value is an array of skills.
 - For certifications: include cert name, issuing organization, and year.
 - For experience: include role, actual company name, duration, and brief description of work done. Always extract the real company name.
-- For suggested_roles: analyze the candidate's skills and experience, and list 2-4 target job roles they are best fit for.
-- For career_recommendations: analyze the candidate's skills and experience, and list 2-4 target job roles along with a match score (0-100) and a brief reason (1 sentence) explaining why they fit the role.
 
 Return this exact JSON structure:
 {
@@ -139,14 +137,6 @@ Return this exact JSON structure:
       "company": "<actual company name>",
       "duration": "<period, e.g. June 2021 - Present>",
       "description": "<brief description of work done>"
-    }
-  ],
-  "suggested_roles": ["<role 1>", "<role 2>", "<role 3>"],
-  "career_recommendations": [
-    {
-      "role": "<job title>",
-      "match_score": 85,
-      "reason": "<brief explanation of why the candidate fits this role>"
     }
   ]
 }`;
@@ -279,8 +269,8 @@ Return ONLY valid JSON matching this exact structure:
   ]
 }`;
 
-    // Run both LLM calls concurrently
-    const analysisPromise = client.chat.completions.create({
+    // Run analysis LLM call
+    const analysisResponse = await client.chat.completions.create({
       model: MODEL_IMPROVEMENT,
       messages: [
         {
@@ -294,30 +284,8 @@ Return ONLY valid JSON matching this exact structure:
       response_format: { type: 'json_object' },
     });
 
-    const recommendationPromise = client.chat.completions.create({
-      model: MODEL_RECOMMENDATION,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert career counselor. Return ONLY valid JSON, no explanation or markdown.',
-        },
-        { role: 'user', content: recommendationPrompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 800,
-      response_format: { type: 'json_object' },
-    });
-
-    const [analysisResponse, recommendationResponse] = await Promise.all([
-      analysisPromise,
-      recommendationPromise,
-    ]);
-
     const rawAnalysis = analysisResponse.choices?.[0]?.message?.content || '';
-    const rawRecommendation = recommendationResponse.choices?.[0]?.message?.content || '';
-
     const analysisObj = parseExtractedJSON(rawAnalysis);
-    const recommendationObj = parseExtractedJSON(rawRecommendation);
 
     // Merge and sanitize
     const mergedResult = {
@@ -327,7 +295,7 @@ Return ONLY valid JSON matching this exact structure:
       strengths: Array.isArray(analysisObj.strengths) ? analysisObj.strengths : [],
       weaknesses: Array.isArray(analysisObj.weaknesses) ? analysisObj.weaknesses : [],
       suggestions: Array.isArray(analysisObj.suggestions) ? analysisObj.suggestions : [],
-      career_recommendations: Array.isArray(recommendationObj.career_recommendations) ? recommendationObj.career_recommendations : [],
+      suggested_roles: [],
       summary: analysisObj.summary || '',
       missing_skills: Array.isArray(analysisObj.missing_skills) ? analysisObj.missing_skills : [],
       keywords_to_add: Array.isArray(analysisObj.keywords_to_add) ? analysisObj.keywords_to_add : [],
@@ -836,7 +804,7 @@ function getFallbackAnalysis(resumeText, extractedSkills = []) {
       { priority: 'medium', category: 'experience', text: 'Use strong action verbs' },
       { priority: 'low', category: 'content', text: 'Add portfolio or GitHub link' },
     ],
-    career_recommendations: [
+    suggested_roles: [
       { role: 'Software Developer', match_score: 70, reason: 'Technical skills match' },
       { role: 'Full Stack Engineer', match_score: 65, reason: 'Frontend + backend skills' },
     ],
@@ -846,4 +814,55 @@ function getFallbackAnalysis(resumeText, extractedSkills = []) {
   };
 }
 
-module.exports = { checkOllamaHealth, extractResumeData, analyzeWithOllama };
+async function getSuggestedRolesFromLLM(resumeText, skills = []) {
+  try {
+    console.log(`☁️  Generating suggested roles via Groq Cloud (${MODEL_RECOMMENDATION})...`);
+
+    const recommendationPrompt = `You are an expert career counselor and job recommendation engine. Analyze this resume and suggest 2-4 job matches they are best fit for.
+    
+RESUME:
+"""
+${resumeText.substring(0, 8000)}
+"""
+
+DETECTED SKILLS: ${Array.isArray(skills) ? skills.join(', ') : ''}
+
+Return ONLY valid JSON matching this exact structure:
+{
+  "suggested_roles": [
+    {
+      "role": "<job title>",
+      "match_score": <0-100>,
+      "reason": "<brief 1-sentence explanation of why they fit this role>"
+    }
+  ]
+}`;
+
+    const response = await client.chat.completions.create({
+      model: MODEL_RECOMMENDATION,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert career counselor. Return ONLY valid JSON, no explanation or markdown.',
+        },
+        { role: 'user', content: recommendationPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 800,
+      response_format: { type: 'json_object' },
+    });
+
+    const rawResponse = response.choices?.[0]?.message?.content || '';
+    const recommendationObj = parseExtractedJSON(rawResponse);
+    
+    return Array.isArray(recommendationObj.suggested_roles) ? recommendationObj.suggested_roles : [];
+  } catch (error) {
+    console.error('Groq suggested roles error:', error.message);
+    return [
+      { role: 'Software Developer', match_score: 75, reason: 'Based on skills matching' },
+      { role: 'Technical Specialist', match_score: 70, reason: 'Based on resume details' },
+    ];
+  }
+}
+
+module.exports = { checkOllamaHealth, extractResumeData, analyzeWithOllama, getSuggestedRolesFromLLM };

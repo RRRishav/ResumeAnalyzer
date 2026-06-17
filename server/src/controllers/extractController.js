@@ -62,8 +62,7 @@ exports.upload = async (req, res) => {
           achievements: extracted.achievements,
           languages: extracted.languages,
           experience: extracted.experience,
-          suggested_roles: extracted.suggested_roles || [],
-          career_recommendations: extracted.career_recommendations || [],
+          suggested_roles: [],
           ats_score: null,
           ats_analysis: { overall_score: null, strengths: [], weaknesses: [], suggestions: [] },
         },
@@ -244,8 +243,7 @@ exports.uploadFromDrive = async (req, res) => {
           achievements: extracted.achievements,
           languages: extracted.languages,
           experience: extracted.experience,
-          suggested_roles: extracted.suggested_roles || [],
-          career_recommendations: extracted.career_recommendations || [],
+          suggested_roles: [],
           ats_score: null,
           ats_analysis: { overall_score: null, strengths: [], weaknesses: [], suggestions: [] },
         },
@@ -343,8 +341,7 @@ exports.ocrExtract = async (req, res) => {
             experience: extracted.experience || [],
             achievements: extracted.achievements || [],
             languages: extracted.languages || [],
-            suggested_roles: extracted.suggested_roles || [],
-            career_recommendations: extracted.career_recommendations || [],
+            suggested_roles: [],
             ats_score: null,
             ats_analysis: { overall_score: null, strengths: [], weaknesses: [], suggestions: [] },
           },
@@ -365,5 +362,40 @@ exports.ocrExtract = async (req, res) => {
   } catch (error) {
     console.error('OCR extraction error:', error);
     res.status(500).json({ error: error.message || 'Extraction failed' });
+  }
+};
+
+// POST /api/extract/suggest-roles/:id
+exports.suggestRoles = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const extraction = await Extraction.findOne({ _id: id, user_id: req.user.id });
+    if (!extraction) {
+      return res.status(404).json({ error: 'Extraction not found' });
+    }
+
+    if (extraction.extracted_data?.suggested_roles && extraction.extracted_data.suggested_roles.length > 0) {
+      return res.json({ suggested_roles: extraction.extracted_data.suggested_roles });
+    }
+
+    const { getSuggestedRolesFromLLM } = require('../services/groqService');
+    const skillsObj = extraction.extracted_data?.skills || {};
+    let skillsList = [];
+    if (Array.isArray(skillsObj)) {
+      skillsList = skillsObj;
+    } else if (typeof skillsObj === 'object') {
+      skillsList = Object.values(skillsObj).flatMap(list => Array.isArray(list) ? list : []);
+    }
+
+    const roles = await getSuggestedRolesFromLLM(extraction.raw_text || '', skillsList);
+
+    extraction.extracted_data.suggested_roles = roles;
+    extraction.markModified('extracted_data');
+    await extraction.save();
+
+    res.json({ suggested_roles: roles });
+  } catch (error) {
+    console.error('Suggest roles error:', error);
+    res.status(500).json({ error: error.message || 'Failed to suggest roles' });
   }
 };

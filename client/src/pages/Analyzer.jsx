@@ -25,6 +25,7 @@ import SkillChart from '../components/SkillChart';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { SuggestedRolesSection } from '../components/CareerSuggestionSections';
 
 const PRODUCTION_SOCKET_URL = 'https://resume-analyzer-api-12if.onrender.com';
 
@@ -47,6 +48,7 @@ export default function Analyzer() {
   const [progress, setProgress] = useState({ stage: '', progress: 0, message: '' });
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [rolesLoading, setRolesLoading] = useState(false);
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -112,6 +114,22 @@ export default function Analyzer() {
     setResult(null);
     setError('');
     setProgress({ stage: '', progress: 0, message: '' });
+    setRolesLoading(false);
+  };
+
+  const handleSuggestRoles = async () => {
+    if (!result?.id) return;
+    setRolesLoading(true);
+    try {
+      const res = await api.post(`/resume/suggest-roles/${result.id}`);
+      setResult(prev => ({ ...prev, suggested_roles: res.data.suggested_roles }));
+      toast.success('Generated suggested job roles!', 3000);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to get job recommendations.', 4000);
+    } finally {
+      setRolesLoading(false);
+    }
   };
 
   return (
@@ -250,18 +268,12 @@ export default function Analyzer() {
               </div>
             </Card>
 
-            {result.career_recommendations?.length > 0 && (
-              <Card className="result-section">
-                <h3><FiStar /> Career Recommendations</h3>
-                <ul style={{ marginTop: '0.75rem', paddingLeft: '1.25rem', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {result.career_recommendations.map((c, i) => (
-                    <li key={i} style={{ fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5' }}>
-                      <strong style={{ color: '#76b900', fontWeight: '600' }}>{c.role}</strong> ({c.match_score}% Match) — {c.reason}
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
+            <SuggestedRolesSection
+              roles={result.suggested_roles || []}
+              isLoading={rolesLoading}
+              onFetch={handleSuggestRoles}
+              animationClass="result-section"
+            />
           </div>
         )}
       </div>

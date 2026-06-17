@@ -30,7 +30,7 @@ import {
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { CareerRecommendationsSection, SuggestedRolesSection } from '../components/CareerSuggestionSections';
+import { SuggestedRolesSection } from '../components/CareerSuggestionSections';
 import api from '../services/api';
 import './OcrExtract.css';
 import './ExtractInfo.css';
@@ -42,7 +42,7 @@ export default function OcrExtract() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('beautiful'); // 'beautiful' | 'raw'
-  const [showSuggested, setShowSuggested] = useState(false);
+  const [rolesLoading, setRolesLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef(null);
 
@@ -108,7 +108,26 @@ export default function OcrExtract() {
     setError('');
     setStep('');
     setViewMode('beautiful');
-    setShowSuggested(false);
+    setRolesLoading(false);
+  };
+
+  const handleSuggestRoles = async () => {
+    if (!result?.id) return;
+    setRolesLoading(true);
+    try {
+      const res = await api.post(`/extract/suggest-roles/${result.id}`);
+      setResult(prev => ({
+        ...prev,
+        extracted_data: {
+          ...(prev.extracted_data || {}),
+          suggested_roles: res.data.suggested_roles
+        }
+      }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRolesLoading(false);
+    }
   };
 
   const data = result?.extracted_data || {};
@@ -291,15 +310,9 @@ export default function OcrExtract() {
                 )}
 
                 <SuggestedRolesSection
-                  roles={data.suggested_roles}
-                  show={showSuggested}
-                  onToggle={() => setShowSuggested(!showSuggested)}
-                  animationClass="ocr-fade-in d2"
-                />
-
-                <CareerRecommendationsSection
-                  recommendations={data.career_recommendations}
-                  fallbackRoles={data.suggested_roles}
+                  roles={data.suggested_roles || []}
+                  isLoading={rolesLoading}
+                  onFetch={handleSuggestRoles}
                   animationClass="ocr-fade-in d2"
                 />
 

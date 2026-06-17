@@ -57,14 +57,7 @@ const extractionSchema = new mongoose.Schema(
           description: { type: String },
         },
       ],
-      suggested_roles: { type: [String], default: [] },
-      career_recommendations: [
-        {
-          role: { type: String },
-          match_score: { type: Number },
-          reason: { type: String },
-        },
-      ],
+      suggested_roles: { type: [mongoose.Schema.Types.Mixed], default: [] },
       ats_score: { type: Number, default: null },
       ats_analysis: {
         overall_score: { type: Number, default: null },
