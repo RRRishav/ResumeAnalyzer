@@ -5,7 +5,10 @@ import {
   FiAlertTriangle,
   FiArrowRight,
   FiBarChart2,
+  FiBookOpen,
+  FiBriefcase,
   FiCheckCircle,
+  FiCode,
   FiCpu,
   FiFileText,
   FiRefreshCcw,
@@ -38,6 +41,34 @@ const getSocketURL = () => {
 
 const skillName = (skill) => (typeof skill === 'string' ? skill : skill?.name || 'Skill');
 
+const parseDate = (str) => {
+  if (!str || str.toLowerCase().includes('present')) return new Date();
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return null;
+  return d;
+};
+
+const calculateDuration = (durationStr) => {
+  if (!durationStr) return '';
+  const parts = durationStr.split(/[-–—]/).map(s => s.trim());
+  if (parts.length === 2) {
+    const start = parseDate(parts[0]);
+    const end = parseDate(parts[1]);
+    if (start && end) {
+      let diff = (end.getFullYear() - start.getFullYear()) * 12;
+      diff -= start.getMonth();
+      diff += end.getMonth();
+      diff += 1;
+      if (diff <= 0) return '';
+      const yrs = Math.floor(diff / 12);
+      const mos = diff % 12;
+      if (yrs > 0 && mos > 0) return `${yrs} yr${yrs > 1 ? 's' : ''} ${mos} mo${mos > 1 ? 's' : ''}`;
+      if (yrs > 0) return `${yrs} yr${yrs > 1 ? 's' : ''}`;
+      return `${mos} mo${mos > 1 ? 's' : ''}`;
+    }
+  }
+  return '';
+};
 export default function Analyzer() {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -84,6 +115,13 @@ export default function Analyzer() {
       formData.append('resume', file);
       if (jobDesc) formData.append('jobDescription', jobDesc);
 
+      const extractPromise = api.post('/extract/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'x-socket-id': socketRef.current?.id || '',
+        },
+      }).catch(e => ({ error: true, data: null }));
+
       const res = await api.post('/resume/analyze', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -92,7 +130,13 @@ export default function Analyzer() {
         timeout: 120000,
       });
 
-      setResult(res.data.analysis);
+      const extractRes = await extractPromise;
+      const analysisData = res.data.analysis;
+      if (extractRes && !extractRes.error && extractRes.data && extractRes.data.extraction) {
+        analysisData.extracted_data = extractRes.data.extraction.extracted_data;
+      }
+
+      setResult(analysisData);
       setProgress({ stage: 'complete', progress: 100, message: 'Analysis complete!' });
       refreshUser();
       toast.success(`Analysis complete! Overall Score: ${res.data.analysis?.overall_score || '—'}/100`, 5000);
@@ -131,6 +175,17 @@ export default function Analyzer() {
       setRolesLoading(false);
     }
   };
+
+  const extData = result?.extracted_data || {};
+  const educationItems = extData.education?.length
+    ? extData.education
+    : (extData.degree || extData.stream || extData.cgpa || extData.tenth_marks || extData.twelfth_marks)
+      ? [{ degree: extData.degree || 'Education', institution: null, stream: extData.stream, score: extData.cgpa, duration: null }]
+      : [];
+
+  const experiences = extData.experience || [];
+  const internships = experiences.filter(exp => (exp.role || '').toLowerCase().includes('intern') || (exp.description || '').toLowerCase().includes('internship'));
+  const fullTime = experiences.filter(exp => !((exp.role || '').toLowerCase().includes('intern') || (exp.description || '').toLowerCase().includes('internship')));
 
   return (
     <div className="analyzer">
@@ -259,10 +314,15 @@ export default function Analyzer() {
                 <Badge variant="warning">Prioritized</Badge>
               </div>
               <div className="result-suggestions">
-                {(result.suggestions || []).map((s, i) => (
+                {([...(result.suggestions || [])].sort((a, b) => {
+                  const pA = typeof a === 'object' ? (a.priority || 'medium').toLowerCase() : 'medium';
+                  const pB = typeof b === 'object' ? (b.priority || 'medium').toLowerCase() : 'medium';
+                  const priorities = { high: 1, medium: 2, low: 3 };
+                  return (priorities[pA] || 2) - (priorities[pB] || 2);
+                })).map((s, i) => (
                   <div key={i} className="suggestion-item">
-                    <span className={`badge badge-${s.priority || 'medium'}`}>{s.priority || 'medium'}</span>
-                    <span className="suggestion-text">{s.text || s}</span>
+                    <span className={`badge badge-${typeof s === 'object' ? (s.priority || 'medium') : 'medium'}`}>{typeof s === 'object' ? (s.priority || 'medium') : 'medium'}</span>
+                    <span className="suggestion-text">{typeof s === 'object' ? (s.text || s) : s}</span>
                   </div>
                 ))}
               </div>
@@ -274,6 +334,140 @@ export default function Analyzer() {
               onFetch={handleSuggestRoles}
               animationClass="result-section"
             />
+
+            {result.extracted_data && (
+              <div className="extract-grid" style={{ marginTop: '2rem' }}>
+                <h2 style={{ gridColumn: '1 / -1', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Extracted Details</h2>
+                
+                {/* Education */}
+                <Card className="extract-section education extract-fade-in d3">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiBookOpen /></div>
+                    Education
+                  </div>
+                  {educationItems.length > 0 ? (
+                    <div className="extract-timeline">
+                      {educationItems.map((edu, i) => (
+                        <div key={i} className="extract-timeline-card">
+                          <div className="extract-timeline-title">{edu.degree || 'Education'}</div>
+                          <div className="extract-mini-tags">
+                            {edu.stream && <span>{edu.stream}</span>}
+                            {edu.score && <span>{edu.score}</span>}
+                            {edu.duration && <span>{edu.duration}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="extract-empty">No education details found</div>
+                  )}
+                </Card>
+
+                {/* Skills */}
+                <Card className="extract-section skills-section extract-fade-in d4">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiCode /></div>
+                    Skills
+                  </div>
+                  {extData.skills && Object.keys(extData.skills).length > 0 ? (
+                    Array.isArray(extData.skills)
+                      ? <div className="extract-skills-grid">{extData.skills.map((s, i) => <span key={i} className="extract-skill-tag">{s}</span>)}</div>
+                      : (
+                        <div className="extract-skills-categories">
+                          {Object.entries(extData.skills).map(([cat, list]) => (
+                            <div key={cat} className="extract-skill-category-group">
+                              <h4 className="skill-category-title">{cat}</h4>
+                              <div className="extract-skills-grid">
+                                {Array.isArray(list) && list.map((s, i) => <span key={i} className="extract-skill-tag">{s}</span>)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                  ) : (
+                    <div className="extract-empty">No skills found</div>
+                  )}
+                </Card>
+
+                {/* Projects */}
+                <Card className="extract-section projects-section extract-grid-full extract-fade-in d6">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiCode /></div>
+                    Projects
+                    {extData.projects?.length > 0 && (
+                      <Badge variant="muted" style={{ marginLeft: 'auto' }}>{extData.projects.length} projects</Badge>
+                    )}
+                  </div>
+                  {extData.projects?.length > 0 ? (
+                    extData.projects.map((p, i) => (
+                      <div key={i} className="extract-project-card">
+                        <div className="extract-project-title">{p.title}</div>
+                        {p.description && <div className="extract-project-desc">{p.description}</div>}
+                        {p.tech_stack?.length > 0 && (
+                          <div className="extract-project-tech">
+                            {p.tech_stack.map((t, j) => <span key={j}>{t}</span>)}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="extract-empty">No projects found</div>
+                  )}
+                </Card>
+
+                {/* Experience */}
+                <Card className="extract-section experience-section extract-grid-full extract-fade-in d7">
+                  <div className="extract-section-title">
+                    <div className="extract-section-icon"><FiBriefcase /></div>
+                    Work Experience
+                  </div>
+                  
+                  {fullTime.length > 0 && (
+                    <>
+                      <h4 style={{ color: 'var(--accent-primary)', marginBottom: '1rem', marginTop: '1rem' }}>Full Time Experience</h4>
+                      <div className="extract-exp-timeline">
+                        {fullTime.map((exp, i) => {
+                          const durationStr = calculateDuration(exp.duration);
+                          return (
+                            <div key={`ft-${i}`} className="extract-exp-item" style={{ position: 'relative' }}>
+                              <div className="extract-exp-role">{exp.role}</div>
+                              {durationStr && <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '0.85rem', color: '#a0a0b8', fontWeight: 500 }}>{durationStr}</div>}
+                              {exp.company && <div className="extract-exp-company">{exp.company}</div>}
+                              {exp.duration && <div className="extract-exp-duration">{exp.duration}</div>}
+                              {exp.description && <div className="extract-exp-desc">{exp.description}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {internships.length > 0 && (
+                    <>
+                      <h4 style={{ color: 'var(--accent-secondary)', marginBottom: '1rem', marginTop: '2rem' }}>Internship Experience</h4>
+                      <div className="extract-exp-timeline">
+                        {internships.map((exp, i) => {
+                          const durationStr = calculateDuration(exp.duration);
+                          return (
+                            <div key={`int-${i}`} className="extract-exp-item" style={{ position: 'relative' }}>
+                              <div className="extract-exp-role">{exp.role}</div>
+                              {durationStr && <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '0.85rem', color: '#a0a0b8', fontWeight: 500 }}>{durationStr}</div>}
+                              {exp.company && <div className="extract-exp-company">{exp.company}</div>}
+                              {exp.duration && <div className="extract-exp-duration">{exp.duration}</div>}
+                              {exp.description && <div className="extract-exp-desc">{exp.description}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                  
+                  {experiences.length === 0 && (
+                    <div className="extract-empty">No work experience found</div>
+                  )}
+                </Card>
+              </div>
+            )}
           </div>
         )}
       </div>

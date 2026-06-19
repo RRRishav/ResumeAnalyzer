@@ -20,7 +20,7 @@ const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 const MODEL_EXTRACTING = process.env.MODEL_EXTRACTING || 'llama-3.3-70b-versatile';
 const MODEL_RECOMMENDATION = process.env.MODEL_RECOMMENDATION || 'qwen/qwen3-32b';
-const MODEL_IMPROVEMENT = process.env.MODEL_IMPROVEMENT || 'llama-3.3-70b-versatile';
+const MODEL_IMPROVEMENT = process.env.MODEL_IMPROVEMENT || 'llama-3.1-8b-instant';
 
 const client = new Groq({ apiKey: GROQ_API_KEY });
 
@@ -173,11 +173,13 @@ async function extractResumeData(resumeText) {
   // Also run local extraction as fallback/merge source
   const fastExtracted = localExtractResumeData(resumeText);
 
+  let response;
+  let usedModel = MODEL_EXTRACTING;
   try {
-    console.log(`☁️  Extracting via Groq Cloud (${MODEL_EXTRACTING})...`);
+    console.log(`☁️  Extracting via Groq Cloud (${usedModel})...`);
 
-    const response = await client.chat.completions.create({
-      model: MODEL_EXTRACTING,
+    response = await client.chat.completions.create({
+      model: usedModel,
       messages: [
         { role: 'system', content: EXTRACT_SYSTEM_PROMPT },
         {
@@ -189,22 +191,50 @@ async function extractResumeData(resumeText) {
       max_tokens: 2800,
       response_format: { type: 'json_object' },
     });
+  } catch (error) {
+    const isRateLimit = error.status === 429 || error.message?.includes('Rate limit') || error.message?.includes('429');
+    if (isRateLimit && usedModel !== 'llama-3.1-8b-instant') {
+      console.warn(`⚠️  Groq primary extraction failed due to rate limits. Retrying with fallback model (llama-3.1-8b-instant)...`);
+      try {
+        usedModel = 'llama-3.1-8b-instant';
+        response = await client.chat.completions.create({
+          model: usedModel,
+          messages: [
+            { role: 'system', content: EXTRACT_SYSTEM_PROMPT },
+            {
+              role: 'user',
+              content: `Extract compact resume JSON from this text:\n\n${resumeText.substring(0, 5000)}`,
+            },
+          ],
+          temperature: 0.1,
+          max_tokens: 2800,
+          response_format: { type: 'json_object' },
+        });
+      } catch (fallbackError) {
+        console.warn(`Groq fallback extraction failed: ${fallbackError.message}`);
+        throw fallbackError;
+      }
+    } else {
+      throw error;
+    }
+  }
 
+  try {
     const rawResponse = response.choices?.[0]?.message?.content || '';
     const groqExtracted = parseExtractedJSON(rawResponse);
     const merged = mergeExtraction(groqExtracted, fastExtracted);
 
     return {
       ...merged,
-      model_used: MODEL_EXTRACTING,
+      model_used: usedModel,
       provider_used: 'groq',
       processing_time_ms: Date.now() - startTime,
     };
   } catch (error) {
-    console.warn(`Groq extraction failed, using local parser: ${error.message}`);
+    console.warn(`Groq extraction parsing failed, using local parser: ${error.message}`);
     return {
       ...fastExtracted,
-      model_used: `${MODEL_EXTRACTING} (local fallback)`,
+      model_used: `${usedModel} (local fallback)`,
       provider_used: 'local-fast',
       processing_time_ms: Date.now() - startTime,
     };
@@ -218,17 +248,20 @@ async function extractResumeData(resumeText) {
 /**
  * Analyze resume with Groq API (same signature as analyzeWithOllama)
  */
-async function analyzeWithOllama(resumeText, extractedSkills = []) {
+async function analyzeWithOllama(resumeText, extractedSkills = [], jobDescription = null) {
   try {
     console.log(`☁️  Analyzing resume with Groq Cloud (split: ${MODEL_IMPROVEMENT} / ${MODEL_RECOMMENDATION})...`);
 
-    const analysisPrompt = `You are an expert HR recruiter and resume advisor. Analyze this resume and provide scores, strengths, weaknesses, overall candidate summary, missing skills, keywords to add, and actionable improvement tips (suggestions).
+    const jobDescText = jobDescription ? `\nJOB DESCRIPTION:\n"""\n${jobDescription}\n"""\n` : '';
+    const analysisPrompt = `You are an expert HR recruiter and resume advisor. Analyze this resume${jobDescription ? ' against the provided Job Description ' : ' '}and provide scores, strengths, weaknesses, overall candidate summary, missing skills, keywords to add, and actionable improvement tips (suggestions).
+
+If a job description is provided, calculate the ats_score strictly based on the match between the resume and the job description.
 
 RESUME:
 """
 ${resumeText.substring(0, 8000)}
 """
-
+${jobDescText}
 DETECTED SKILLS: ${extractedSkills.join(', ')}
 
 Return ONLY valid JSON matching this exact structure:
@@ -270,19 +303,55 @@ Return ONLY valid JSON matching this exact structure:
 }`;
 
     // Run analysis LLM call
-    const analysisResponse = await client.chat.completions.create({
-      model: MODEL_IMPROVEMENT,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert resume analyzer. Return ONLY valid JSON, no explanation or markdown.',
-        },
-        { role: 'user', content: analysisPrompt },
-      ],
-      temperature: 0.2,
-      max_tokens: 1200,
-      response_format: { type: 'json_object' },
-    });
+    let activeModel = MODEL_IMPROVEMENT;
+    if (activeModel === 'mixtral-8x7b-32768') {
+      console.warn('⚠️  mixtral-8x7b-32768 is decommissioned on Groq Cloud. Mapping to llama-3.3-70b-versatile to ensure successful analysis.');
+      activeModel = 'llama-3.3-70b-versatile';
+    }
+
+    let analysisResponse;
+    let usedModel = activeModel;
+    try {
+      analysisResponse = await client.chat.completions.create({
+        model: usedModel,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert resume analyzer. Return ONLY valid JSON, no explanation or markdown.',
+          },
+          { role: 'user', content: analysisPrompt },
+        ],
+        temperature: 0.2,
+        max_tokens: 1200,
+        response_format: { type: 'json_object' },
+      });
+    } catch (error) {
+      const isRateLimit = error.status === 429 || error.message?.includes('Rate limit') || error.message?.includes('429');
+      if (isRateLimit && usedModel !== 'llama-3.1-8b-instant') {
+        console.warn(`⚠️  Groq primary analysis failed due to rate limits. Retrying with fallback model (llama-3.1-8b-instant)...`);
+        try {
+          usedModel = 'llama-3.1-8b-instant';
+          analysisResponse = await client.chat.completions.create({
+            model: usedModel,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert resume analyzer. Return ONLY valid JSON, no explanation or markdown.',
+              },
+              { role: 'user', content: analysisPrompt },
+            ],
+            temperature: 0.2,
+            max_tokens: 1200,
+            response_format: { type: 'json_object' },
+          });
+        } catch (fallbackError) {
+          console.warn(`Groq fallback analysis failed: ${fallbackError.message}`);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
 
     const rawAnalysis = analysisResponse.choices?.[0]?.message?.content || '';
     const analysisObj = parseExtractedJSON(rawAnalysis);

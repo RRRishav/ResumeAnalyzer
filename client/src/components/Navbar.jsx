@@ -51,7 +51,6 @@ export default function Navbar() {
               {[
                 { to: '/dashboard', label: 'Dashboard' },
                 { to: '/analyze', label: 'Analyze' },
-                { to: '/extract', label: 'Extract' },
                 { to: '/history', label: 'History' },
                 { to: '/extract-history', label: 'Extractions' },
               ].map((link) => (
@@ -110,7 +109,6 @@ export default function Navbar() {
                 {[
                   { to: '/dashboard', label: 'Dashboard' },
                   { to: '/analyze', label: 'Analyze' },
-                  { to: '/extract', label: 'Extract' },
                   { to: '/history', label: 'History' },
                   { to: '/extract-history', label: 'Extractions' },
                 ].map((link) => (

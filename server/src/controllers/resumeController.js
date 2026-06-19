@@ -41,7 +41,8 @@ exports.analyze = async (req, res) => {
       req.file.originalname,
       req.user.id,
       io,
-      socketId
+      socketId,
+      req.body.jobDescription
     );
 
     // Save to database

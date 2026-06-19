@@ -59,6 +59,35 @@ const flattenSkills = (skills) => {
   return Object.values(skills).flatMap((list) => Array.isArray(list) ? list : []).filter(Boolean);
 };
 
+const parseDate = (str) => {
+  if (!str || str.toLowerCase().includes('present')) return new Date();
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return null;
+  return d;
+};
+
+const calculateDuration = (durationStr) => {
+  if (!durationStr) return '';
+  const parts = durationStr.split(/[-–—]/).map(s => s.trim());
+  if (parts.length === 2) {
+    const start = parseDate(parts[0]);
+    const end = parseDate(parts[1]);
+    if (start && end) {
+      let diff = (end.getFullYear() - start.getFullYear()) * 12;
+      diff -= start.getMonth();
+      diff += end.getMonth();
+      diff += 1;
+      if (diff <= 0) return '';
+      const yrs = Math.floor(diff / 12);
+      const mos = diff % 12;
+      if (yrs > 0 && mos > 0) return `${yrs} yr${yrs > 1 ? 's' : ''} ${mos} mo${mos > 1 ? 's' : ''}`;
+      if (yrs > 0) return `${yrs} yr${yrs > 1 ? 's' : ''}`;
+      return `${mos} mo${mos > 1 ? 's' : ''}`;
+    }
+  }
+  return '';
+};
+
 
 
 export default function ExtractInfo() {
@@ -240,6 +269,10 @@ export default function ExtractInfo() {
         ? data.skills.length
         : Object.values(data.skills).reduce((a, c) => a + (Array.isArray(c) ? c.length : 0), 0))
     : 0;
+
+  const experiences = data.experience || [];
+  const internships = experiences.filter(exp => (exp.role || '').toLowerCase().includes('intern') || (exp.description || '').toLowerCase().includes('internship'));
+  const fullTime = experiences.filter(exp => !((exp.role || '').toLowerCase().includes('intern') || (exp.description || '').toLowerCase().includes('internship')));
 
   const formatTime = (ms) => {
     if (!ms) return '—';
@@ -495,20 +528,6 @@ export default function ExtractInfo() {
                   ) : (
                     <div className="extract-empty">No education details found</div>
                   )}
-                  <div className="education-grid education-score-grid">
-                    {[
-                      ['10th Marks', data.tenth_marks],
-                      ['12th Marks', data.twelfth_marks],
-                      ['Degree', data.degree],
-                      ['Stream', data.stream],
-                      ['CGPA / %', data.cgpa],
-                    ].map(([label, val]) => (
-                      <div className="education-item" key={label}>
-                        <div className="education-item-label">{label}</div>
-                        <div className={`education-item-value ${!val ? 'empty' : ''}`}>{val || 'N/A'}</div>
-                      </div>
-                    ))}
-                  </div>
                 </Card>
 
                 {/* Skills */}
@@ -578,21 +597,6 @@ export default function ExtractInfo() {
                   )}
                 </Card>
 
-                {/* Languages */}
-                <Card className="extract-section languages-section extract-fade-in d6">
-                  <div className="extract-section-title">
-                    <div className="extract-section-icon"><FiGlobe /></div>
-                    Languages
-                  </div>
-                  {data.languages?.length > 0 ? (
-                    <div className="extract-skills-grid">
-                      {data.languages.map((l, i) => <span key={i} className="extract-language-tag">{l}</span>)}
-                    </div>
-                  ) : (
-                    <div className="extract-empty">No languages found</div>
-                  )}
-                </Card>
-
                 {/* Projects */}
                 <Card className="extract-section projects-section extract-grid-full extract-fade-in d6">
                   <div className="extract-section-title">
@@ -628,18 +632,45 @@ export default function ExtractInfo() {
                       <Badge variant="muted" style={{ marginLeft: 'auto' }}>{data.total_experience}</Badge>
                     )}
                   </div>
-                  {data.experience?.length > 0 ? (
-                    <div className="extract-exp-timeline">
-                      {data.experience.map((exp, i) => (
-                        <div key={i} className="extract-exp-item">
-                          <div className="extract-exp-role">{exp.role}</div>
-                          {exp.company && <div className="extract-exp-company">{exp.company}</div>}
-                          {exp.duration && <div className="extract-exp-duration">{exp.duration}</div>}
-                          {exp.description && <div className="extract-exp-desc">{exp.description}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
+                  {fullTime.length > 0 && (
+                    <>
+                      <h4 style={{ color: 'var(--accent-primary)', marginBottom: '1rem', marginTop: '1rem' }}>Full Time Experience</h4>
+                      <div className="extract-exp-timeline">
+                        {fullTime.map((exp, i) => {
+                          const durationStr = calculateDuration(exp.duration);
+                          return (
+                            <div key={`ft-${i}`} className="extract-exp-item">
+                              <div className="extract-exp-role">{exp.role}</div>
+                              {exp.company && <div className="extract-exp-company">{exp.company} {durationStr && <span style={{ float: 'right', fontSize: '0.85rem', color: '#a0a0b8' }}>{durationStr}</span>}</div>}
+                              {exp.duration && <div className="extract-exp-duration">{exp.duration}</div>}
+                              {exp.description && <div className="extract-exp-desc">{exp.description}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {internships.length > 0 && (
+                    <>
+                      <h4 style={{ color: 'var(--accent-secondary)', marginBottom: '1rem', marginTop: '2rem' }}>Internship Experience</h4>
+                      <div className="extract-exp-timeline">
+                        {internships.map((exp, i) => {
+                          const durationStr = calculateDuration(exp.duration);
+                          return (
+                            <div key={`int-${i}`} className="extract-exp-item">
+                              <div className="extract-exp-role">{exp.role}</div>
+                              {exp.company && <div className="extract-exp-company">{exp.company} {durationStr && <span style={{ float: 'right', fontSize: '0.85rem', color: '#a0a0b8' }}>{durationStr}</span>}</div>}
+                              {exp.duration && <div className="extract-exp-duration">{exp.duration}</div>}
+                              {exp.description && <div className="extract-exp-desc">{exp.description}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {experiences.length === 0 && (
                     <div className="extract-empty">No work experience found</div>
                   )}
                 </Card>

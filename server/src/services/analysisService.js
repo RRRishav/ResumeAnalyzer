@@ -5,7 +5,7 @@ const { analyzeWithOllama } = require('./groqService');
 /**
  * Full analysis pipeline with Socket.io progress events
  */
-async function runAnalysis(filePath, filename, userId, io, socketId) {
+async function runAnalysis(filePath, filename, userId, io, socketId, jobDescription) {
   const emit = (stage, progress, message) => {
     if (io && socketId) {
       io.to(socketId).emit('analysis_progress', { stage, progress, message });
@@ -25,7 +25,7 @@ async function runAnalysis(filePath, filename, userId, io, socketId) {
 
     // Stage 3: AI Analysis
     emit('analyzing', 60, 'Running AI-powered deep analysis...');
-    const analysisResult = await analyzeWithOllama(text, topSkills);
+    const analysisResult = await analyzeWithOllama(text, topSkills, jobDescription);
     emit('analyzing', 80, 'Generating insights and recommendations...');
 
     // Stage 4: Combine results
